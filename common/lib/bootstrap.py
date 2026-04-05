@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+"""Bootstrap helper for MataTonyPi notebooks."""
+
+from __future__ import annotations
+
+from pathlib import Path
+import os
+import sys
+
+
+def safe_start_dir() -> Path:
+    try:
+        return Path.cwd().resolve()
+    except Exception:
+        home = os.environ.get("HOME")
+        if home:
+            return Path(home).resolve()
+        return Path("/tmp").resolve()
+
+
+def find_repo_root(start: Path) -> Path:
+    p = start.resolve()
+    for _ in range(25):
+        if (p / "lessons").is_dir() and (p / "common").is_dir():
+            return p
+        if p.parent == p:
+            break
+        p = p.parent
+    raise FileNotFoundError(f"Could not find MataTonyPi repo root from {start}")
+
+
+def resolve_common_lib(root: Path) -> Path:
+    candidates = []
+    for env_name in ("MATA_COMMON_LIB_DIR", "LESSON_CACHE_COMMON_LIB_DIR"):
+        value = str(os.environ.get(env_name, "")).strip()
+        if value:
+            candidates.append(Path(value).expanduser())
+
+    candidates.extend(
+        [
+            Path("/opt/robot/students/lessons_cache/common/lib"),
+            Path("/opt/robot/students/lesson_cache/common/lib"),
+            root / "common" / "lib",
+            Path("/opt/robot/common/lib"),
+        ]
+    )
+
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = str(candidate.resolve(strict=False))
+        if key in seen:
+            continue
+        seen.add(key)
+        if candidate.exists() and candidate.is_dir():
+            return candidate
+    return candidates[-1]
+
+
+def resolve_lessons_lib(root: Path) -> Path:
+    candidates = []
+    value = str(os.environ.get("MATA_LESSONS_LIB_DIR", "")).strip()
+    if value:
+        candidates.append(Path(value).expanduser())
+
+    candidates.extend(
+        [
+            root / "lessons" / "lib",
+            Path("/opt/robot/students/lessons_cache/lessons/lib"),
+            Path("/opt/robot/students/lesson_cache/lessons/lib"),
+            Path("/opt/robot/lessons/lib"),
+        ]
+    )
+
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = str(candidate.resolve(strict=False))
+        if key in seen:
+            continue
+        seen.add(key)
+        if candidate.exists() and candidate.is_dir():
+            return candidate
+    return candidates[-1]
+
+
+def bootstrap(verbose: bool = True) -> dict[str, str]:
+    start = safe_start_dir()
+    root = find_repo_root(start)
+    common_lib = resolve_common_lib(root)
+    lessons_lib = resolve_lessons_lib(root)
+
+    for path in reversed([common_lib, lessons_lib]):
+        path_s = str(path)
+        if path_s not in sys.path:
+            sys.path.insert(0, path_s)
+
+    info = {
+        "START": str(start),
+        "ROOT": str(root),
+        "COMMON_LIB": str(common_lib),
+        "LESSONS_LIB": str(lessons_lib),
+    }
+    if verbose:
+        print("START:", info["START"])
+        print("Repo root:", info["ROOT"])
+        print("Using common lib:", info["COMMON_LIB"])
+        print("Using lessons lib:", info["LESSONS_LIB"])
+    return info

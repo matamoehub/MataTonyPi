@@ -1,0 +1,17 @@
+{
+  "id": "lesson01",
+  "title": "Lesson 1 - Hello TonyPi",
+  "description": "Meet TonyPi through speech, head movement, gestures, and simple expressive actions.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1 (Beginner)",
+      "entry": "Lesson01.ipynb"
+    },
+    {
+      "id": "demos",
+      "title": "Demos",
+      "entry": "Robot_Demo.ipynb"
+    }
+  ]
+}
