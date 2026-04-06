@@ -289,8 +289,8 @@ def _resolve_piper_model() -> str | None:
 
     voice_dir = Path("/opt/robot/piper/voices")
     preferred = [
-        "en_US-ryan-high.onnx",
         "en_US-amy-medium.onnx",
+        "en_US-ryan-high.onnx",
         "en_GB-alan-medium.onnx",
     ]
     candidates.extend(voice_dir / name for name in preferred)
