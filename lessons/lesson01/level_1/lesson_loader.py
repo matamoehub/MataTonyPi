@@ -15,6 +15,8 @@ COMMON_MODULES = [
     "student_robot_v2",
 ]
 
+LESSON_DIR = Path(__file__).resolve().parent
+
 
 def _safe_start_dir() -> Path:
     try:
@@ -24,6 +26,24 @@ def _safe_start_dir() -> Path:
         if home and Path(home).is_dir():
             return Path(home).resolve()
         return Path("/tmp").resolve()
+
+
+def _candidate_start_dirs() -> list[Path]:
+    candidates = [
+        _safe_start_dir(),
+        LESSON_DIR,
+        LESSON_DIR.parent,
+        LESSON_DIR.parent.parent,
+    ]
+    seen: set[str] = set()
+    unique: list[Path] = []
+    for candidate in candidates:
+        key = str(candidate.resolve(strict=False))
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(candidate)
+    return unique
 
 
 def _find_repo_root(start: Path) -> Path:
@@ -56,7 +76,17 @@ def setup(verbose: bool = True):
     except Exception:
         pass
 
-    root = _find_repo_root(start)
+    root = None
+    for candidate in _candidate_start_dirs():
+        try:
+            root = _find_repo_root(candidate)
+            break
+        except FileNotFoundError:
+            continue
+    if root is None:
+        raise FileNotFoundError(
+            "Could not find MataTonyPi repo root from cwd or lesson directory"
+        )
     common_lib = _resolve_common_lib(root)
     lessons_lib = root / "lessons" / "lib"
 
@@ -66,6 +96,8 @@ def setup(verbose: bool = True):
             sys.path.insert(0, path_s)
 
     if verbose:
+        print(f"[lesson_loader] start={start}")
+        print(f"[lesson_loader] root={root}")
         print(f"[lesson_loader] common_lib={common_lib}")
         print(f"[lesson_loader] lessons_lib={lessons_lib}")
 

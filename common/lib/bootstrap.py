@@ -18,6 +18,32 @@ def safe_start_dir() -> Path:
         return Path("/tmp").resolve()
 
 
+def candidate_roots(start: Path) -> list[Path]:
+    candidates = [start, Path(__file__).resolve().parents[2]]
+    env_root = str(os.environ.get("MATA_REPO_ROOT", "")).strip()
+    if env_root:
+        candidates.append(Path(env_root).expanduser())
+
+    # When running in Jupyter, cwd can be unrelated to the lesson path.
+    candidates.extend(
+        [
+            Path("/opt/robot/MataTonyPi"),
+            Path("/opt/robot/students/workspaces/Mata-T1/JC"),
+            Path("/workspaces/Mata-T1/JC"),
+        ]
+    )
+
+    seen: set[str] = set()
+    unique: list[Path] = []
+    for candidate in candidates:
+        key = str(candidate.resolve(strict=False))
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(candidate)
+    return unique
+
+
 def find_repo_root(start: Path) -> Path:
     p = start.resolve()
     for _ in range(25):
@@ -84,7 +110,17 @@ def resolve_lessons_lib(root: Path) -> Path:
 
 def bootstrap(verbose: bool = True) -> dict[str, str]:
     start = safe_start_dir()
-    root = find_repo_root(start)
+    root = None
+    for candidate in candidate_roots(start):
+        try:
+            root = find_repo_root(candidate)
+            break
+        except FileNotFoundError:
+            continue
+    if root is None:
+        raise FileNotFoundError(
+            f"Could not find MataTonyPi repo root from {start} or known robot locations"
+        )
     common_lib = resolve_common_lib(root)
     lessons_lib = resolve_lessons_lib(root)
 
