@@ -181,6 +181,8 @@ class MotionNamespace(_Namespace):
 
 
 class VisionNamespace(_Namespace):
+    _COLOR_NAMES = {"red", "green", "blue", "yellow", "r", "g", "b", "y"}
+
     def _prepare_face_capture(self):
         self._owner.head.look_up()
         time.sleep(0.18)
@@ -223,6 +225,10 @@ class VisionNamespace(_Namespace):
         return DetectionResult(found=True, label=f"tag:{int(tag_id)}", x=int(tag["cx"]), y=int(tag["cy"]), area=0, confidence=1.0, note=result.get("path", ""))
 
     def track_color(self, name: str):
+        color_name = str(name).strip().lower()
+        if color_name not in self._COLOR_NAMES:
+            self._log("vision.track_color", name=str(name))
+            return {"found": False, "label": str(name), "note": "TonyPi color tracking currently supports red, green, blue, or yellow"}
         return vision_lib.get_vision().find_color(str(name), show=True)
 
     def track_face(self):
@@ -233,10 +239,18 @@ class VisionNamespace(_Namespace):
         return vision_lib.get_vision().snapshot(show=True)
 
     def scan_for(self, name: str):
-        if str(name).lower() == "face":
+        target = str(name).strip().lower()
+        if target == "face":
             self._prepare_face_capture()
             return vision_lib.get_vision().find_face(show=True)
-        return vision_lib.get_vision().find_color(str(name), show=True)
+        if target in self._COLOR_NAMES:
+            return vision_lib.get_vision().find_color(str(name), show=True)
+        self._log("vision.scan_for", name=str(name))
+        return {
+            "found": False,
+            "label": str(name),
+            "note": "TonyPi scan_for currently supports face or colors: red, green, blue, yellow",
+        }
 
 
 class PickupNamespace(_Namespace):
