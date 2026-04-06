@@ -224,6 +224,9 @@ class VisionNamespace(_Namespace):
         tag = tags[0]
         return DetectionResult(found=True, label=f"tag:{int(tag_id)}", x=int(tag["cx"]), y=int(tag["cy"]), area=0, confidence=1.0, note=result.get("path", ""))
 
+    def recognize_hands(self, show: bool = True):
+        return vision_lib.get_vision().recognize_hands(show=show)
+
     def track_color(self, name: str):
         color_name = str(name).strip().lower()
         if color_name not in self._COLOR_NAMES:

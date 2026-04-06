@@ -86,6 +86,49 @@ def _clamp_pixel(value: float, maximum: int) -> int:
     return max(0, min(int(round(value)), maximum))
 
 
+def _hand_landmark_xy(landmarks, index: int) -> Tuple[float, float]:
+    point = landmarks[index]
+    return float(point.x), float(point.y)
+
+
+def _classify_hand_gesture(landmarks, handedness: str) -> Tuple[str, Dict[str, bool]]:
+    wrist_x, wrist_y = _hand_landmark_xy(landmarks, 0)
+    thumb_tip_x, thumb_tip_y = _hand_landmark_xy(landmarks, 4)
+    thumb_ip_x, thumb_ip_y = _hand_landmark_xy(landmarks, 3)
+    index_tip_y = _hand_landmark_xy(landmarks, 8)[1]
+    index_pip_y = _hand_landmark_xy(landmarks, 6)[1]
+    middle_tip_y = _hand_landmark_xy(landmarks, 12)[1]
+    middle_pip_y = _hand_landmark_xy(landmarks, 10)[1]
+    ring_tip_y = _hand_landmark_xy(landmarks, 16)[1]
+    ring_pip_y = _hand_landmark_xy(landmarks, 14)[1]
+    pinky_tip_y = _hand_landmark_xy(landmarks, 20)[1]
+    pinky_pip_y = _hand_landmark_xy(landmarks, 18)[1]
+
+    fingers = {
+        "thumb": (thumb_tip_x < thumb_ip_x) if handedness.lower().startswith("right") else (thumb_tip_x > thumb_ip_x),
+        "index": index_tip_y < index_pip_y,
+        "middle": middle_tip_y < middle_pip_y,
+        "ring": ring_tip_y < ring_pip_y,
+        "pinky": pinky_tip_y < pinky_pip_y,
+    }
+
+    if all(fingers.values()):
+        return "paper", fingers
+    if not any(fingers.values()):
+        return "rock", fingers
+    if fingers["index"] and fingers["middle"] and not fingers["ring"] and not fingers["pinky"]:
+        return "scissors", fingers
+    if fingers["index"] and not fingers["middle"] and not fingers["ring"] and not fingers["pinky"]:
+        return "point", fingers
+    if fingers["thumb"] and not fingers["index"] and not fingers["middle"] and not fingers["ring"] and not fingers["pinky"]:
+        if thumb_tip_y < wrist_y and thumb_ip_y < wrist_y:
+            return "thumbs_up", fingers
+        return "thumb_out", fingers
+    if fingers["index"] and fingers["pinky"] and not fingers["middle"] and not fingers["ring"]:
+        return "rock_sign", fingers
+    return "unknown", fingers
+
+
 class Vision:
     def __init__(self, camera_index: Optional[int] = None, width: int = 640, height: int = 480, warmup_s: float = 0.25, min_area: int = 350):
         env_value = os.environ.get("CAM_INDEX")
@@ -301,8 +344,33 @@ class Vision:
                         handedness_label = multi_handedness[idx - 1].classification[0].label
                     except Exception:
                         pass
+                xs = [_clamp_pixel(pt.x * annotated.shape[1], annotated.shape[1] - 1) for pt in landmarks.landmark]
+                ys = [_clamp_pixel(pt.y * annotated.shape[0], annotated.shape[0] - 1) for pt in landmarks.landmark]
+                gesture, fingers = _classify_hand_gesture(landmarks.landmark, handedness_label)
                 mp.solutions.drawing_utils.draw_landmarks(annotated, landmarks, mp.solutions.hands.HAND_CONNECTIONS)
-                hands_found.append({"index": idx, "handedness": handedness_label})
+                cv2.putText(
+                    annotated,
+                    f"{handedness_label} {gesture}",
+                    (min(xs), max(18, min(ys) - 8)),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.55,
+                    (255, 255, 0),
+                    2,
+                )
+                hands_found.append(
+                    {
+                        "index": idx,
+                        "handedness": handedness_label,
+                        "gesture": gesture,
+                        "fingers": fingers,
+                        "bbox": {
+                            "x": min(xs),
+                            "y": min(ys),
+                            "w": max(xs) - min(xs),
+                            "h": max(ys) - min(ys),
+                        },
+                    }
+                )
         except Exception as exc:
             note = f"Hand detection unavailable on this robot image: {exc}"
 
@@ -313,7 +381,14 @@ class Vision:
         elif save_path:
             path = self._write_image(annotated, save_path=save_path)
 
-        return {"found": bool(hands_found), "count": len(hands_found), "hands": hands_found, "path": path, "note": note}
+        return {
+            "found": bool(hands_found),
+            "count": len(hands_found),
+            "hands": hands_found,
+            "path": path,
+            "note": note,
+            "game_moves": [hand["gesture"] for hand in hands_found if hand.get("gesture") in ("rock", "paper", "scissors")],
+        }
 
     def find_tag(self, tag_id: int | None = None, show: bool = True, save_path: Optional[str] = None) -> Dict[str, Any]:
         cv2, _np = _require_runtime()

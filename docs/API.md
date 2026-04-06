@@ -96,6 +96,7 @@ if result.found:
 - `find_color(name)`
 - `find_object(name)`
 - `find_face()`
+- `recognize_hands(show=True)`
 - `find_tag(tag_id)`
 - `track_color(name)`
 - `track_face()`

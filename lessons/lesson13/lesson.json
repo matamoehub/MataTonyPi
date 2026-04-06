@@ -1,0 +1,13 @@
+{
+  "id": "lesson13",
+  "title": "Lesson 13 - Rock Paper Scissors",
+  "description": "Use TonyPi hand recognition, speech, and poses to play rock paper scissors with a student.",
+  "summary": "Use TonyPi hand recognition, speech, and poses to play rock paper scissors with a student.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1 - Gesture Game",
+      "entry": "Lesson13.ipynb"
+    }
+  ]
+}
