@@ -199,9 +199,13 @@ class VisionNamespace(_Namespace):
         faces = result.get("faces", [])
         self._log("vision.find_face")
         if not faces:
-            return DetectionResult(found=False, label="face", note="No face found")
+            note = str(result.get("note") or "No face found")
+            return DetectionResult(found=False, label="face", note=note)
         face = faces[0]
-        return DetectionResult(found=True, label="face", x=int(face["cx"]), y=int(face["cy"]), area=int(face["w"] * face["h"]), confidence=float(face.get("score", 1.0)), note=result.get("path", ""))
+        backend = str(result.get("backend") or "")
+        path = str(result.get("path") or "")
+        detail = f"{backend}:{path}" if backend and path else (backend or path)
+        return DetectionResult(found=True, label="face", x=int(face["cx"]), y=int(face["cy"]), area=int(face["w"] * face["h"]), confidence=float(face.get("score", 1.0)), note=detail)
 
     def find_tag(self, tag_id: int) -> DetectionResult:
         result = vision_lib.get_vision().find_tag(tag_id=int(tag_id), show=True)

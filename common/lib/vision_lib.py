@@ -53,6 +53,18 @@ def _require_mediapipe_runtime():
     return mp
 
 
+def _load_haar_face_cascade():
+    cv2, _np = _require_runtime()
+    try:
+        base = Path(cv2.data.haarcascades)  # type: ignore[attr-defined]
+    except Exception:
+        return None
+    cascade = cv2.CascadeClassifier(str(base / "haarcascade_frontalface_default.xml"))
+    if cascade.empty():
+        return None
+    return cascade
+
+
 def _display_png_bytes(png_bytes: bytes) -> bool:
     try:
         from IPython.display import Image, display  # type: ignore
@@ -219,26 +231,42 @@ class Vision:
 
     def detect_faces(self, show: bool = True, save_path: Optional[str] = None, min_confidence: float = 0.5) -> Dict[str, Any]:
         cv2, _np = _require_runtime()
-        mp = _require_mediapipe_runtime()
         frame_bgr = self._capture_frame()
         frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
         annotated = frame_bgr.copy()
         h, w = annotated.shape[:2]
         faces: List[Dict[str, Any]] = []
+        backend = "mediapipe"
+        note = ""
 
-        with mp.solutions.face_detection.FaceDetection(model_selection=0, min_detection_confidence=float(min_confidence)) as detector:
-            result = detector.process(frame_rgb)
+        try:
+            mp = _require_mediapipe_runtime()
+            with mp.solutions.face_detection.FaceDetection(model_selection=0, min_detection_confidence=float(min_confidence)) as detector:
+                result = detector.process(frame_rgb)
 
-        detections = getattr(result, "detections", None) or []
-        for idx, detection in enumerate(detections, start=1):
-            bbox = detection.location_data.relative_bounding_box
-            x = _clamp_pixel(bbox.xmin * w, w - 1)
-            y = _clamp_pixel(bbox.ymin * h, h - 1)
-            bw = max(1, _clamp_pixel(bbox.width * w, w))
-            bh = max(1, _clamp_pixel(bbox.height * h, h))
-            face = {"index": idx, "x": x, "y": y, "w": bw, "h": bh, "cx": int(x + bw / 2), "cy": int(y + bh / 2), "score": float(detection.score[0])}
-            faces.append(face)
-            cv2.rectangle(annotated, (x, y), (x + bw, y + bh), (0, 255, 0), 2)
+            detections = getattr(result, "detections", None) or []
+            for idx, detection in enumerate(detections, start=1):
+                bbox = detection.location_data.relative_bounding_box
+                x = _clamp_pixel(bbox.xmin * w, w - 1)
+                y = _clamp_pixel(bbox.ymin * h, h - 1)
+                bw = max(1, _clamp_pixel(bbox.width * w, w))
+                bh = max(1, _clamp_pixel(bbox.height * h, h))
+                face = {"index": idx, "x": x, "y": y, "w": bw, "h": bh, "cx": int(x + bw / 2), "cy": int(y + bh / 2), "score": float(detection.score[0])}
+                faces.append(face)
+                cv2.rectangle(annotated, (x, y), (x + bw, y + bh), (0, 255, 0), 2)
+        except Exception as exc:
+            backend = "opencv-haar"
+            note = f"MediaPipe unavailable, used OpenCV fallback: {exc}"
+            cascade = _load_haar_face_cascade()
+            if cascade is not None:
+                gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
+                detections = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(40, 40))
+                for idx, (x, y, bw, bh) in enumerate(detections, start=1):
+                    face = {"index": idx, "x": int(x), "y": int(y), "w": int(bw), "h": int(bh), "cx": int(x + bw / 2), "cy": int(y + bh / 2), "score": 0.6}
+                    faces.append(face)
+                    cv2.rectangle(annotated, (int(x), int(y)), (int(x + bw), int(y + bh)), (0, 255, 0), 2)
+            else:
+                note = "Face detection unavailable: MediaPipe is not installed and OpenCV Haar cascade was not found"
 
         path = None
         if show:
@@ -247,33 +275,36 @@ class Vision:
         elif save_path:
             path = self._write_image(annotated, save_path=save_path)
 
-        return {"found": bool(faces), "count": len(faces), "faces": faces, "path": path}
+        return {"found": bool(faces), "count": len(faces), "faces": faces, "path": path, "backend": backend, "note": note}
 
     def find_face(self, show: bool = True, save_path: Optional[str] = None) -> Dict[str, Any]:
         return self.detect_faces(show=show, save_path=save_path)
 
     def recognize_hands(self, show: bool = True, save_path: Optional[str] = None, max_hands: int = 2) -> Dict[str, Any]:
         cv2, _np = _require_runtime()
-        mp = _require_mediapipe_runtime()
         frame_bgr = self._capture_frame()
-        frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
         annotated = frame_bgr.copy()
         hands_found: List[Dict[str, Any]] = []
+        note = ""
+        try:
+            mp = _require_mediapipe_runtime()
+            frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+            with mp.solutions.hands.Hands(static_image_mode=True, max_num_hands=int(max_hands), min_detection_confidence=0.5, min_tracking_confidence=0.5) as detector:
+                result = detector.process(frame_rgb)
 
-        with mp.solutions.hands.Hands(static_image_mode=True, max_num_hands=int(max_hands), min_detection_confidence=0.5, min_tracking_confidence=0.5) as detector:
-            result = detector.process(frame_rgb)
-
-        multi_landmarks = getattr(result, "multi_hand_landmarks", None) or []
-        multi_handedness = getattr(result, "multi_handedness", None) or []
-        for idx, landmarks in enumerate(multi_landmarks, start=1):
-            handedness_label = "unknown"
-            if idx - 1 < len(multi_handedness):
-                try:
-                    handedness_label = multi_handedness[idx - 1].classification[0].label
-                except Exception:
-                    pass
-            mp.solutions.drawing_utils.draw_landmarks(annotated, landmarks, mp.solutions.hands.HAND_CONNECTIONS)
-            hands_found.append({"index": idx, "handedness": handedness_label})
+            multi_landmarks = getattr(result, "multi_hand_landmarks", None) or []
+            multi_handedness = getattr(result, "multi_handedness", None) or []
+            for idx, landmarks in enumerate(multi_landmarks, start=1):
+                handedness_label = "unknown"
+                if idx - 1 < len(multi_handedness):
+                    try:
+                        handedness_label = multi_handedness[idx - 1].classification[0].label
+                    except Exception:
+                        pass
+                mp.solutions.drawing_utils.draw_landmarks(annotated, landmarks, mp.solutions.hands.HAND_CONNECTIONS)
+                hands_found.append({"index": idx, "handedness": handedness_label})
+        except Exception as exc:
+            note = f"Hand detection unavailable on this robot image: {exc}"
 
         path = None
         if show:
@@ -282,7 +313,7 @@ class Vision:
         elif save_path:
             path = self._write_image(annotated, save_path=save_path)
 
-        return {"found": bool(hands_found), "count": len(hands_found), "hands": hands_found, "path": path}
+        return {"found": bool(hands_found), "count": len(hands_found), "hands": hands_found, "path": path, "note": note}
 
     def find_tag(self, tag_id: int | None = None, show: bool = True, save_path: Optional[str] = None) -> Dict[str, Any]:
         cv2, _np = _require_runtime()
