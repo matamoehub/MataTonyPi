@@ -6,7 +6,10 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
+import action_group_lib
+import head_lib
 import tonypi_support as support
+import tts_lib
 
 
 @dataclass
@@ -73,48 +76,28 @@ class HeadNamespace(_Namespace):
         return self._owner._set_head(vertical=vertical, horizontal=horizontal, duration_ms=duration_ms)
 
     def look_left(self):
-        vertical, horizontal = support.head_center()
-        return self._move(vertical=vertical, horizontal=horizontal + self._H_DELTA)
+        return self._owner._wrap_call("head.look_left", head_lib.look_left, delta=self._H_DELTA)
 
     def look_right(self):
-        vertical, horizontal = support.head_center()
-        return self._move(vertical=vertical, horizontal=horizontal - self._H_DELTA)
+        return self._owner._wrap_call("head.look_right", head_lib.look_right, delta=self._H_DELTA)
 
     def look_up(self):
-        vertical, horizontal = support.head_center()
-        return self._move(vertical=vertical - self._V_DELTA, horizontal=horizontal)
+        return self._owner._wrap_call("head.look_up", head_lib.look_up, delta=self._V_DELTA)
 
     def look_down(self):
-        vertical, horizontal = support.head_center()
-        return self._move(vertical=vertical + self._V_DELTA, horizontal=horizontal)
+        return self._owner._wrap_call("head.look_down", head_lib.look_down, delta=self._V_DELTA)
 
     def center(self):
-        vertical, horizontal = support.head_center()
-        return self._move(vertical=vertical, horizontal=horizontal)
+        return self._owner._wrap_call("head.center", head_lib.center)
 
     def nod(self):
-        vertical, horizontal = support.head_center()
-        self._move(vertical=vertical + 160, horizontal=horizontal, duration_ms=220)
-        support.sleep(0.18)
-        self._move(vertical=vertical - 120, horizontal=horizontal, duration_ms=220)
-        support.sleep(0.18)
-        return self.center()
+        return self._owner._wrap_call("head.nod", head_lib.nod)
 
     def shake(self):
-        vertical, horizontal = support.head_center()
-        self._move(vertical=vertical, horizontal=horizontal + 220, duration_ms=200)
-        support.sleep(0.15)
-        self._move(vertical=vertical, horizontal=horizontal - 220, duration_ms=200)
-        support.sleep(0.15)
-        return self.center()
+        return self._owner._wrap_call("head.shake", head_lib.shake)
 
     def scan(self):
-        vertical, horizontal = support.head_center()
-        self._move(vertical=vertical, horizontal=horizontal + 300, duration_ms=260)
-        support.sleep(0.18)
-        self._move(vertical=vertical, horizontal=horizontal - 300, duration_ms=260)
-        support.sleep(0.18)
-        return self.center()
+        return self._owner._wrap_call("head.scan", head_lib.scan)
 
 
 class ArmsNamespace(_Namespace):
@@ -292,7 +275,7 @@ class RobotV2:
             payload["note"] = "TonyPi action group unavailable"
             return payload
         try:
-            result = support.run_action(resolved, times=max(1, int(times)))
+            result = action_group_lib.run(resolved, times=max(1, int(times)))
             payload = self._log(action, resolved=resolved, times=int(times))
             payload["resolved"] = resolved
             payload["result"] = result
@@ -315,9 +298,21 @@ class RobotV2:
             payload["note"] = str(exc)
             return payload
 
+    def _wrap_call(self, action: str, fn, **kwargs):
+        try:
+            result = fn(**kwargs)
+            payload = self._log(action, **kwargs)
+            payload["result"] = result
+            return payload
+        except Exception as exc:
+            payload = self._log(action, **kwargs)
+            payload["ok"] = False
+            payload["note"] = str(exc)
+            return payload
+
     def say(self, text: str, block: bool = True):
         try:
-            result = support.say(text=text, block=block)
+            result = tts_lib.say(text=text, block=block)
             payload = self._log("say", text=str(text), block=bool(block))
             payload["result"] = result
             return payload

@@ -6,6 +6,9 @@ from __future__ import annotations
 import importlib
 import os
 import re
+import shutil
+import site
+import subprocess
 import sys
 import time
 from functools import lru_cache
@@ -63,6 +66,9 @@ def resolve_vendor_root() -> Path:
 def ensure_vendor_paths() -> Path:
     vendor = resolve_vendor_root()
     paths = [
+        Path("/usr/lib/python3/dist-packages"),
+        Path(f"/usr/local/lib/python{sys.version_info.major}.{sys.version_info.minor}/dist-packages"),
+        Path(f"/usr/lib/python{sys.version_info.major}/dist-packages"),
         vendor,
         vendor / "Functions",
         vendor / "Functions" / "voice_interaction",
@@ -71,7 +77,11 @@ def ensure_vendor_paths() -> Path:
     ]
     for path in reversed(paths):
         value = str(path)
-        if path.exists() and value not in sys.path:
+        if not path.exists():
+            continue
+        if "dist-packages" in value:
+            site.addsitedir(value)
+        elif value not in sys.path:
             sys.path.insert(0, value)
     return vendor
 
@@ -92,6 +102,18 @@ def _import_any(module_names: Iterable[str]) -> Any:
     if last_error is not None:
         raise last_error
     raise ImportError("No module names provided")
+
+
+@lru_cache(maxsize=1)
+def get_action_group_dict() -> dict[str, str]:
+    try:
+        mod = _import_any(("ActionGroupDict",))
+        data = getattr(mod, "action_group_dict", None)
+        if isinstance(data, dict):
+            return {str(k): str(v) for k, v in data.items()}
+    except Exception:
+        pass
+    return {}
 
 
 @lru_cache(maxsize=1)
@@ -209,8 +231,10 @@ def action_group_dir() -> Path:
 def list_action_groups() -> list[str]:
     root = action_group_dir()
     if not root.is_dir():
-        return []
-    return sorted(path.stem for path in root.iterdir() if path.is_file())
+        return sorted(set(get_action_group_dict().values()))
+    names = {path.stem for path in root.iterdir() if path.is_file()}
+    names.update(get_action_group_dict().values())
+    return sorted(names)
 
 
 def _normalize(text: str) -> str:
@@ -242,9 +266,13 @@ def resolve_action_name(candidates: Iterable[str | tuple[str, ...]]) -> str | No
     return None
 
 
+def action_name_for_id(action_id: str | int) -> str | None:
+    return get_action_group_dict().get(str(action_id))
+
+
 def say(text: str, block: bool = True) -> Any:
     ensure_vendor_paths()
-    for module_name in ("tts_lib",):
+    for module_name in ("tts_lib", "voice_interaction.tts", "voice_interaction.tts_node"):
         try:
             mod = importlib.import_module(module_name)
         except Exception:
@@ -253,9 +281,17 @@ def say(text: str, block: bool = True) -> Any:
             fn = getattr(mod, fn_name, None)
             if callable(fn):
                 return fn(str(text), block=bool(block))
+
+    for cmd in ("espeak-ng", "espeak", "spd-say"):
+        if not shutil.which(cmd):
+            continue
+        proc = subprocess.Popen([cmd, str(text)])
+        if block:
+            proc.wait()
+        return {"cmd": cmd, "text": str(text)}
+
     raise RuntimeError("TonyPi speech backend unavailable")
 
 
 def sleep(seconds: float) -> None:
     time.sleep(float(seconds))
-
