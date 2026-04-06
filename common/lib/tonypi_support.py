@@ -115,10 +115,18 @@ def resolve_vendor_root() -> Path:
 
 def ensure_vendor_paths() -> Path:
     vendor = resolve_vendor_root()
+    user_site_candidates = []
+    try:
+        user_site = Path(site.getusersitepackages())
+        user_site_candidates.append(user_site)
+    except Exception:
+        pass
+    user_site_candidates.append(Path.home() / ".local" / f"lib/python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages")
     paths = [
         Path("/usr/lib/python3/dist-packages"),
         Path(f"/usr/local/lib/python{sys.version_info.major}.{sys.version_info.minor}/dist-packages"),
         Path(f"/usr/lib/python{sys.version_info.major}/dist-packages"),
+        *user_site_candidates,
         vendor,
         vendor / "Functions",
         vendor / "Functions" / "voice_interaction",
@@ -129,7 +137,7 @@ def ensure_vendor_paths() -> Path:
         value = str(path)
         if not path.exists():
             continue
-        if "dist-packages" in value:
+        if "dist-packages" in value or value.endswith("site-packages"):
             site.addsitedir(value)
         elif value not in sys.path:
             sys.path.insert(0, value)
