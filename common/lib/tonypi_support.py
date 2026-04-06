@@ -270,6 +270,76 @@ def action_name_for_id(action_id: str | int) -> str | None:
     return get_action_group_dict().get(str(action_id))
 
 
+def _resolve_piper_binary() -> str | None:
+    candidates = [
+        "/home/pi/.local/bin/piper",
+        shutil.which("piper"),
+    ]
+    for candidate in candidates:
+        if candidate and Path(candidate).exists():
+            return str(candidate)
+    return None
+
+
+def _resolve_piper_model() -> str | None:
+    candidates = []
+    env_model = str(os.environ.get("MATA_PIPER_MODEL", "")).strip()
+    if env_model:
+        candidates.append(Path(env_model).expanduser())
+
+    voice_dir = Path("/opt/robot/piper/voices")
+    preferred = [
+        "en_US-ryan-high.onnx",
+        "en_US-amy-medium.onnx",
+        "en_GB-alan-medium.onnx",
+    ]
+    candidates.extend(voice_dir / name for name in preferred)
+    candidates.extend(sorted(voice_dir.glob("*.onnx")) if voice_dir.is_dir() else [])
+
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        if candidate.exists():
+            return str(candidate)
+    return None
+
+
+def _say_with_piper(text: str, block: bool = True) -> Any:
+    piper_bin = _resolve_piper_binary()
+    model = _resolve_piper_model()
+    if not piper_bin or not model:
+        raise RuntimeError("Piper binary or model unavailable")
+
+    output_file = Path("/tmp") / f"matatonypi_{int(time.time() * 1000)}.wav"
+    with subprocess.Popen(
+        [piper_bin, "--model", model, "--output_file", str(output_file)],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    ) as proc:
+        proc.communicate(str(text))
+        if proc.returncode not in (0, None):
+            raise RuntimeError(f"Piper failed with code {proc.returncode}")
+
+    player = shutil.which("aplay") or shutil.which("paplay") or shutil.which("ffplay")
+    if player is None:
+        return {"cmd": piper_bin, "model": model, "output_file": str(output_file)}
+
+    if Path(player).name == "ffplay":
+        play_cmd = [player, "-nodisp", "-autoexit", str(output_file)]
+    else:
+        play_cmd = [player, str(output_file)]
+
+    proc = subprocess.Popen(play_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if block:
+        proc.wait()
+    return {"cmd": piper_bin, "model": model, "output_file": str(output_file), "player": player}
+
+
 def say(text: str, block: bool = True) -> Any:
     ensure_vendor_paths()
     local_tts = Path(__file__).resolve().parent / "tts_lib.py"
@@ -285,6 +355,11 @@ def say(text: str, block: bool = True) -> Any:
             fn = getattr(mod, fn_name, None)
             if callable(fn):
                 return fn(str(text), block=bool(block))
+
+    try:
+        return _say_with_piper(text=str(text), block=bool(block))
+    except Exception:
+        pass
 
     for cmd in ("espeak-ng", "espeak", "spd-say"):
         if not shutil.which(cmd):
