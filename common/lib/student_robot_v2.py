@@ -3,8 +3,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from typing import Any
+
+import tonypi_support as support
 
 
 @dataclass
@@ -28,132 +30,166 @@ class _Namespace:
     def _log(self, action: str, **kwargs) -> dict[str, Any]:
         return self._owner._log(action, **kwargs)
 
+    def _run_action(self, action: str, candidates, times: int = 1):
+        return self._owner._run_named_action(action, candidates, times=times)
+
 
 class AnimationNamespace(_Namespace):
     def wave(self):
-        return self._log("anim.wave")
+        return self._run_action("anim.wave", ["wave", ("hello",), ("greet",)])
 
     def greet(self):
-        return self._log("anim.greet")
+        return self._run_action("anim.greet", ["wave", ("greet",), ("hello",)])
 
     def dance(self):
-        return self._log("anim.dance")
+        return self._run_action("anim.dance", ["dance", "twist", ("happy",), ("celebrate",)])
 
     def celebrate(self):
-        return self._log("anim.celebrate")
+        return self._run_action("anim.celebrate", ["dance", "wave", "twist", ("celebrate",)])
 
     def think(self):
-        return self._log("anim.think")
+        self._owner.head.look_left()
+        self._owner.head.look_right()
+        return self._owner.head.center()
 
     def sad(self):
-        return self._log("anim.sad")
+        return self._owner.pose.bow()
 
     def yes(self):
-        return self._log("anim.yes")
+        return self._owner.head.nod()
 
     def no(self):
-        return self._log("anim.no")
+        return self._owner.head.shake()
 
     def scan(self):
-        return self._log("anim.scan")
+        return self._owner.head.scan()
 
 
 class HeadNamespace(_Namespace):
+    _H_DELTA = 320
+    _V_DELTA = 260
+
+    def _move(self, vertical: int | None = None, horizontal: int | None = None, duration_ms: int = 280):
+        return self._owner._set_head(vertical=vertical, horizontal=horizontal, duration_ms=duration_ms)
+
     def look_left(self):
-        return self._log("head.look_left")
+        vertical, horizontal = support.head_center()
+        return self._move(vertical=vertical, horizontal=horizontal + self._H_DELTA)
 
     def look_right(self):
-        return self._log("head.look_right")
+        vertical, horizontal = support.head_center()
+        return self._move(vertical=vertical, horizontal=horizontal - self._H_DELTA)
 
     def look_up(self):
-        return self._log("head.look_up")
+        vertical, horizontal = support.head_center()
+        return self._move(vertical=vertical - self._V_DELTA, horizontal=horizontal)
 
     def look_down(self):
-        return self._log("head.look_down")
+        vertical, horizontal = support.head_center()
+        return self._move(vertical=vertical + self._V_DELTA, horizontal=horizontal)
 
     def center(self):
-        return self._log("head.center")
+        vertical, horizontal = support.head_center()
+        return self._move(vertical=vertical, horizontal=horizontal)
 
     def nod(self):
-        return self._log("head.nod")
+        vertical, horizontal = support.head_center()
+        self._move(vertical=vertical + 160, horizontal=horizontal, duration_ms=220)
+        support.sleep(0.18)
+        self._move(vertical=vertical - 120, horizontal=horizontal, duration_ms=220)
+        support.sleep(0.18)
+        return self.center()
 
     def shake(self):
-        return self._log("head.shake")
+        vertical, horizontal = support.head_center()
+        self._move(vertical=vertical, horizontal=horizontal + 220, duration_ms=200)
+        support.sleep(0.15)
+        self._move(vertical=vertical, horizontal=horizontal - 220, duration_ms=200)
+        support.sleep(0.15)
+        return self.center()
 
     def scan(self):
-        return self._log("head.scan")
+        vertical, horizontal = support.head_center()
+        self._move(vertical=vertical, horizontal=horizontal + 300, duration_ms=260)
+        support.sleep(0.18)
+        self._move(vertical=vertical, horizontal=horizontal - 300, duration_ms=260)
+        support.sleep(0.18)
+        return self.center()
 
 
 class ArmsNamespace(_Namespace):
     def left_up(self):
-        return self._log("arms.left_up")
+        return self._run_action("arms.left_up", [("left", "hand", "up"), ("left", "arm", "up"), ("raise", "left")])
 
     def right_up(self):
-        return self._log("arms.right_up")
+        return self._run_action("arms.right_up", [("right", "hand", "up"), ("right", "arm", "up"), ("raise", "right")])
 
     def hands_up(self):
-        return self._log("arms.hands_up")
+        return self._run_action("arms.hands_up", [("hands", "up"), ("raise", "hands"), ("both", "hands", "up")])
 
     def open(self):
-        return self._log("arms.open")
+        return self._run_action("arms.open", [("open", "hand"), ("open", "arm"), ("open",)])
 
     def close(self):
-        return self._log("arms.close")
+        return self._run_action("arms.close", [("close", "hand"), ("close", "arm"), ("close",)])
 
     def center(self):
-        return self._log("arms.center")
+        return self._run_action("arms.center", [("stand",), ("home", "arm"), ("center", "arm")])
 
     def grab_pose(self):
-        return self._log("arms.grab_pose")
+        return self._run_action("arms.grab_pose", [("grab",), ("pickup",), ("pick",)])
 
     def carry_pose(self):
-        return self._log("arms.carry_pose")
+        return self._run_action("arms.carry_pose", [("carry",), ("hold",)])
 
     def release_pose(self):
-        return self._log("arms.release_pose")
+        return self._run_action("arms.release_pose", [("release",), ("place",), ("put", "down")])
 
 
 class PoseNamespace(_Namespace):
     def ready(self):
-        return self._log("pose.ready")
+        return self._run_action("pose.ready", ["stand", ("ready",)])
 
     def neutral(self):
-        return self._log("pose.neutral")
+        return self._run_action("pose.neutral", ["stand", ("home",)])
 
     def bow(self):
-        return self._log("pose.bow")
+        return self._run_action("pose.bow", ["bow"])
 
     def stand(self):
-        return self._log("pose.stand")
+        return self._run_action("pose.stand", ["stand"])
 
     def sit(self):
-        return self._log("pose.sit")
+        return self._run_action("pose.sit", ["sit", ("squat",), ("rest",)])
 
     def carry(self):
-        return self._log("pose.carry")
+        return self._run_action("pose.carry", [("carry",), ("hold",)])
 
 
 class MotionNamespace(_Namespace):
+    def _steps(self, action: str, candidates, steps: int = 1):
+        return self._owner._run_named_action(action, candidates, times=max(1, int(steps)))
+
     def walk_forward(self, steps: int = 1):
-        return self._log("motion.walk_forward", steps=int(steps))
+        return self._steps("motion.walk_forward", ["go_forward", ("forward",)], steps=steps)
 
     def walk_backward(self, steps: int = 1):
-        return self._log("motion.walk_backward", steps=int(steps))
+        return self._steps("motion.walk_backward", ["back", "go_back", ("backward",)], steps=steps)
 
     def turn_left(self, steps: int = 1):
-        return self._log("motion.turn_left", steps=int(steps))
+        return self._steps("motion.turn_left", ["turn_left_small_step", "turn_left", ("left", "turn")], steps=steps)
 
     def turn_right(self, steps: int = 1):
-        return self._log("motion.turn_right", steps=int(steps))
+        return self._steps("motion.turn_right", ["turn_right_small_step", "turn_right", ("right", "turn")], steps=steps)
 
     def step_left(self, steps: int = 1):
-        return self._log("motion.step_left", steps=int(steps))
+        return self._steps("motion.step_left", ["left_move", "left_move_large", ("left", "move")], steps=steps)
 
     def step_right(self, steps: int = 1):
-        return self._log("motion.step_right", steps=int(steps))
+        return self._steps("motion.step_right", ["right_move", "right_move_large", ("right", "move")], steps=steps)
 
     def approach(self):
-        return self._log("motion.approach")
+        return self.walk_forward(steps=1)
 
     def stop(self):
         return self._owner.stop()
@@ -162,19 +198,19 @@ class MotionNamespace(_Namespace):
 class VisionNamespace(_Namespace):
     def find_color(self, name: str) -> DetectionResult:
         self._log("vision.find_color", name=str(name))
-        return DetectionResult(found=False, label=str(name), note="Vision backend not connected yet")
+        return DetectionResult(found=False, label=str(name), note="TonyPi vision backend not connected yet")
 
     def find_object(self, name: str) -> DetectionResult:
         self._log("vision.find_object", name=str(name))
-        return DetectionResult(found=False, label=str(name), note="Object detection backend not connected yet")
+        return DetectionResult(found=False, label=str(name), note="TonyPi object detection backend not connected yet")
 
     def find_face(self) -> DetectionResult:
         self._log("vision.find_face")
-        return DetectionResult(found=False, label="face", note="Face detection backend not connected yet")
+        return DetectionResult(found=False, label="face", note="TonyPi face detection backend not connected yet")
 
     def find_tag(self, tag_id: int) -> DetectionResult:
         self._log("vision.find_tag", tag_id=int(tag_id))
-        return DetectionResult(found=False, label=f"tag:{int(tag_id)}", note="AprilTag backend not connected yet")
+        return DetectionResult(found=False, label=f"tag:{int(tag_id)}", note="TonyPi AprilTag backend not connected yet")
 
     def track_color(self, name: str):
         return self._log("vision.track_color", name=str(name))
@@ -191,25 +227,25 @@ class VisionNamespace(_Namespace):
 
 class PickupNamespace(_Namespace):
     def approach_object(self, name: str):
-        return self._log("pickup.approach_object", name=str(name))
+        return self._run_action("pickup.approach_object", [("approach",), ("pickup",), ("transport",)])
 
     def pick_up(self, name: str):
-        return self._log("pickup.pick_up", name=str(name))
+        return self._run_action("pickup.pick_up", [("pick",), ("pickup",), ("grab",)])
 
     def grab(self):
-        return self._log("pickup.grab")
+        return self._run_action("pickup.grab", [("grab",), ("pickup",)])
 
     def carry(self):
-        return self._log("pickup.carry")
+        return self._run_action("pickup.carry", [("carry",), ("transport",)])
 
     def place_down(self):
-        return self._log("pickup.place_down")
+        return self._run_action("pickup.place_down", [("place",), ("put", "down"), ("release",)])
 
     def release(self):
-        return self._log("pickup.release")
+        return self._run_action("pickup.release", [("release",), ("open", "hand")])
 
     def transport(self, name: str):
-        return self._log("pickup.transport", name=str(name))
+        return self._run_action("pickup.transport", [("transport",), ("carry",)])
 
 
 class VoiceNamespace(_Namespace):
@@ -217,13 +253,13 @@ class VoiceNamespace(_Namespace):
         return self._owner.say(text=text, block=block)
 
     def greet(self):
-        return self._log("voice.greet")
+        return self.say("Hello everyone.")
 
     def celebrate(self):
-        return self._log("voice.celebrate")
+        return self.say("Yay. Great job.")
 
     def think(self):
-        return self._log("voice.think")
+        return self.say("Hmm. Let me think.")
 
 
 class RobotV2:
@@ -239,27 +275,74 @@ class RobotV2:
         self.voice = VoiceNamespace(self)
         self.tts = self.voice
 
+    def _backend_name(self) -> str:
+        return "tonypi" if support.vendor_available() else "stub"
+
     def _log(self, action: str, **kwargs) -> dict[str, Any]:
-        payload = {"ok": True, "action": action, "kwargs": kwargs, "backend": "stub"}
+        payload = {"ok": True, "action": action, "kwargs": kwargs, "backend": self._backend_name()}
         if self.verbose:
             print(f"[student_robot_v2] {action} {kwargs}".rstrip())
         return payload
 
+    def _run_named_action(self, action: str, candidates, times: int = 1):
+        resolved = support.resolve_action_name(candidates)
+        if resolved is None:
+            payload = self._log(action, candidates=list(candidates), times=int(times))
+            payload["ok"] = False
+            payload["note"] = "TonyPi action group unavailable"
+            return payload
+        try:
+            result = support.run_action(resolved, times=max(1, int(times)))
+            payload = self._log(action, resolved=resolved, times=int(times))
+            payload["resolved"] = resolved
+            payload["result"] = result
+            return payload
+        except Exception as exc:
+            payload = self._log(action, resolved=resolved, times=int(times))
+            payload["ok"] = False
+            payload["note"] = str(exc)
+            return payload
+
+    def _set_head(self, vertical: int | None = None, horizontal: int | None = None, duration_ms: int = 300):
+        try:
+            result = support.set_head(vertical=vertical, horizontal=horizontal, duration_ms=duration_ms)
+            payload = self._log("head.move", **result)
+            payload["result"] = result
+            return payload
+        except Exception as exc:
+            payload = self._log("head.move", vertical=vertical, horizontal=horizontal, duration_ms=int(duration_ms))
+            payload["ok"] = False
+            payload["note"] = str(exc)
+            return payload
+
     def say(self, text: str, block: bool = True):
-        return self._log("say", text=str(text), block=bool(block))
+        try:
+            result = support.say(text=text, block=block)
+            payload = self._log("say", text=str(text), block=bool(block))
+            payload["result"] = result
+            return payload
+        except Exception as exc:
+            payload = self._log("say", text=str(text), block=bool(block))
+            payload["ok"] = False
+            payload["note"] = str(exc)
+            return payload
 
     def stop(self):
+        support.stop_actions()
         return self._log("stop")
 
     def status(self):
         return {
             "robot": "MataTonyPi",
-            "backend": "stub",
+            "backend": self._backend_name(),
+            "vendor_root": str(support.resolve_vendor_root()),
+            "action_groups_found": len(support.list_action_groups()),
             "namespaces": ["anim", "head", "arms", "pose", "motion", "vision", "pickup", "voice"],
         }
 
     def home(self):
-        return self._log("home")
+        self.head.center()
+        return self.pose.stand()
 
     def stand(self):
         return self.pose.stand()
