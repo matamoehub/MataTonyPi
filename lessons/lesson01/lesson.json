@@ -1,7 +1,7 @@
 {
   "id": "lesson01",
-  "title": "Lesson 1 - Hello TonyPi",
-  "description": "Meet TonyPi through speech, head movement, gestures, and simple expressive actions.",
+  "title": "Lesson 1 - TonyPi Feature Tour",
+  "description": "Meet TonyPi through a guided tour of speech, gestures, head motion, poses, movement, vision, and pickup actions.",
   "levels": [
     {
       "id": "level_1",
