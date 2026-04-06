@@ -4,12 +4,11 @@ from __future__ import annotations
 """TonyPi notebook-friendly camera and vision helper."""
 
 import copy
+import os
 import tempfile
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
-
-import camera_lib
 
 HSVRange = Tuple[Tuple[int, int, int], Tuple[int, int, int]]
 
@@ -76,32 +75,35 @@ def _clamp_pixel(value: float, maximum: int) -> int:
 
 
 class Vision:
-    def __init__(self, min_area: int = 350):
+    def __init__(self, camera_index: Optional[int] = None, width: int = 640, height: int = 480, warmup_s: float = 0.25, min_area: int = 350):
+        self.camera_index = int(os.environ.get("CAM_INDEX", camera_index if camera_index is not None else 0))
+        self.width = int(width)
+        self.height = int(height)
+        self.warmup_s = float(warmup_s)
         self.min_area = int(min_area)
         self._profiles: Dict[str, List[HSVRange]] = copy.deepcopy(DEFAULT_COLOR_PROFILES)
 
     def _capture_frame(self):
-        cam = camera_lib.get_camera()
-        for fn_name in ("camera_open", "open"):
-            fn = getattr(cam, fn_name, None)
-            if callable(fn):
-                try:
-                    fn()
-                except Exception:
-                    pass
-                break
-        time.sleep(0.15)
-        frame = getattr(cam, "frame", None)
+        cv2, _np = _require_runtime()
+        cap = cv2.VideoCapture(self.camera_index)
+        if not cap.isOpened():
+            raise RuntimeError(
+                f"TonyPi camera failed to open on index {self.camera_index}. "
+                "Try setting CAM_INDEX=1 or CAM_INDEX=2 on this robot."
+            )
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+        if self.warmup_s > 0:
+            time.sleep(self.warmup_s)
+
+        frame = None
+        for _ in range(6):
+            ok, maybe = cap.read()
+            if ok and maybe is not None:
+                frame = maybe
+        cap.release()
         if frame is None:
-            read = getattr(cam, "read", None)
-            if callable(read):
-                maybe = read()
-                if isinstance(maybe, tuple) and len(maybe) >= 2:
-                    frame = maybe[1]
-                else:
-                    frame = maybe
-        if frame is None:
-            raise RuntimeError("TonyPi camera opened, but no frame was available")
+            raise RuntimeError("TonyPi camera opened, but no frame was available from OpenCV capture")
         return frame.copy()
 
     def _write_image(self, frame_bgr, save_path: Optional[str] = None) -> str:
