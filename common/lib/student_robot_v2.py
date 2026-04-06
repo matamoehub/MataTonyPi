@@ -10,6 +10,7 @@ import action_group_lib
 import head_lib
 import tonypi_support as support
 import tts_lib
+import vision_lib
 
 
 @dataclass
@@ -180,32 +181,50 @@ class MotionNamespace(_Namespace):
 
 class VisionNamespace(_Namespace):
     def find_color(self, name: str) -> DetectionResult:
+        result = vision_lib.get_vision().find_color(str(name), show=True)
+        objects = result.get("objects", [])
+        if not objects:
+            self._log("vision.find_color", name=str(name))
+            return DetectionResult(found=False, label=str(name), note="No matching color found")
+        obj = max(objects, key=lambda item: item["area"])
         self._log("vision.find_color", name=str(name))
-        return DetectionResult(found=False, label=str(name), note="TonyPi vision backend not connected yet")
+        return DetectionResult(found=True, label=str(name), x=int(obj["cx"]), y=int(obj["cy"]), area=int(obj["area"]), confidence=1.0, note=result.get("path", ""))
 
     def find_object(self, name: str) -> DetectionResult:
         self._log("vision.find_object", name=str(name))
-        return DetectionResult(found=False, label=str(name), note="TonyPi object detection backend not connected yet")
+        return DetectionResult(found=False, label=str(name), note="Object detection backend not implemented yet")
 
     def find_face(self) -> DetectionResult:
+        result = vision_lib.get_vision().find_face(show=True)
+        faces = result.get("faces", [])
         self._log("vision.find_face")
-        return DetectionResult(found=False, label="face", note="TonyPi face detection backend not connected yet")
+        if not faces:
+            return DetectionResult(found=False, label="face", note="No face found")
+        face = faces[0]
+        return DetectionResult(found=True, label="face", x=int(face["cx"]), y=int(face["cy"]), area=int(face["w"] * face["h"]), confidence=float(face.get("score", 1.0)), note=result.get("path", ""))
 
     def find_tag(self, tag_id: int) -> DetectionResult:
+        result = vision_lib.get_vision().find_tag(tag_id=int(tag_id), show=True)
+        tags = result.get("tags", [])
         self._log("vision.find_tag", tag_id=int(tag_id))
-        return DetectionResult(found=False, label=f"tag:{int(tag_id)}", note="TonyPi AprilTag backend not connected yet")
+        if not tags:
+            return DetectionResult(found=False, label=f"tag:{int(tag_id)}", note="No matching tag found")
+        tag = tags[0]
+        return DetectionResult(found=True, label=f"tag:{int(tag_id)}", x=int(tag["cx"]), y=int(tag["cy"]), area=0, confidence=1.0, note=result.get("path", ""))
 
     def track_color(self, name: str):
-        return self._log("vision.track_color", name=str(name))
+        return vision_lib.get_vision().find_color(str(name), show=True)
 
     def track_face(self):
-        return self._log("vision.track_face")
+        return vision_lib.get_vision().find_face(show=True)
 
     def snapshot(self):
-        return self._log("vision.snapshot")
+        return vision_lib.get_vision().snapshot(show=True)
 
     def scan_for(self, name: str):
-        return self._log("vision.scan_for", name=str(name))
+        if str(name).lower() == "face":
+            return vision_lib.get_vision().find_face(show=True)
+        return vision_lib.get_vision().find_color(str(name), show=True)
 
 
 class PickupNamespace(_Namespace):
