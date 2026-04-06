@@ -31,14 +31,14 @@ def look_right(delta: int = 320, duration_ms: int = 280):
 
 def look_up(delta: int = 260, duration_ms: int = 280):
     vertical, horizontal = head_center()
-    result = set_head(vertical=vertical - int(delta), horizontal=horizontal, duration_ms=duration_ms)
+    result = set_head(vertical=vertical + int(delta), horizontal=horizontal, duration_ms=duration_ms)
     sleep(HEAD_SETTLE_S)
     return result
 
 
 def look_down(delta: int = 260, duration_ms: int = 280):
     vertical, horizontal = head_center()
-    result = set_head(vertical=vertical + int(delta), horizontal=horizontal, duration_ms=duration_ms)
+    result = set_head(vertical=vertical - int(delta), horizontal=horizontal, duration_ms=duration_ms)
     sleep(HEAD_SETTLE_S)
     return result
 
