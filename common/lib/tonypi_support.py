@@ -32,6 +32,40 @@ PIPER_VOICE_MAP = {
 }
 
 
+def _preferred_audio_device() -> str | None:
+    env_device = str(os.environ.get("MATA_AUDIO_DEVICE", "")).strip()
+    if env_device:
+        return env_device
+
+    try:
+        result = subprocess.run(["aplay", "-l"], capture_output=True, text=True, check=False)
+    except Exception:
+        return None
+
+    lines = result.stdout.splitlines()
+    usb_candidate = None
+    first_candidate = None
+    for line in lines:
+        line = line.strip()
+        if not line.startswith("card "):
+            continue
+        try:
+            card_part, device_part = line.split(",", 1)
+            card_num = int(card_part.split()[1].rstrip(":"))
+            device_num = int(device_part.split("device", 1)[1].split(":", 1)[0].strip())
+        except Exception:
+            continue
+
+        device = f"plughw:{card_num},{device_num}"
+        if first_candidate is None:
+            first_candidate = device
+        if "USB" in line or "Audio Device" in line:
+            usb_candidate = device
+            break
+
+    return usb_candidate or first_candidate
+
+
 def repo_root() -> Path:
     here = Path(__file__).resolve()
     for parent in here.parents:
@@ -370,8 +404,15 @@ def _say_with_piper(text: str, block: bool = True, voice: str | None = None) -> 
     if player is None:
         return {"cmd": piper_bin, "model": model, "output_file": str(output_file)}
 
-    if Path(player).name == "ffplay":
+    player_name = Path(player).name
+    if player_name == "ffplay":
         play_cmd = [player, "-nodisp", "-autoexit", str(output_file)]
+    elif player_name == "aplay":
+        device = _preferred_audio_device()
+        play_cmd = [player]
+        if device:
+            play_cmd.extend(["-D", device])
+        play_cmd.append(str(output_file))
     else:
         play_cmd = [player, str(output_file)]
 
@@ -383,7 +424,14 @@ def _say_with_piper(text: str, block: bool = True, voice: str | None = None) -> 
             )
     else:
         subprocess.Popen(play_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    return {"cmd": piper_bin, "model": model, "voice": selected, "output_file": str(output_file), "player": player}
+    return {
+        "cmd": piper_bin,
+        "model": model,
+        "voice": selected,
+        "output_file": str(output_file),
+        "player": player,
+        "audio_device": _preferred_audio_device(),
+    }
 
 
 def say(text: str, block: bool = True, voice: str | None = None) -> Any:
