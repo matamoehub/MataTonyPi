@@ -60,12 +60,45 @@ if target.found:
 
 See [API.md](./docs/API.md) for the full proposed surface.
 
-## Lesson Arc
+## Current Lessons
 
-The planned sequence is based on the upstream TonyPi tutorial structure and
+The repo currently includes these student-facing lessons:
+
+### Lesson 1 - TonyPi Show Starter
+
+Path: `lessons/lesson01`
+
+Summary:
+- introduces the `student_robot_v2` API
+- covers speech, head movement, arms, poses, and walking
+- demonstrates color, face, tag, snapshot, and hand-recognition vision calls
+- introduces pickup-style commands
+- ends with a remixable mini performance
+
+Included notebooks:
+- `lessons/lesson01/level_1/Lesson01.ipynb`
+- `lessons/lesson01/demos/Robot_Demo.ipynb`
+
+### Lesson 13 - Rock Paper Scissors
+
+Path: `lessons/lesson13`
+
+Summary:
+- uses `myRobot.vision.recognize_hands(show=True)` to read player gestures
+- lets TonyPi choose rock, paper, or scissors
+- compares the player move and robot move
+- reacts with TonyPi speech and expressive poses
+- works as a foundation for scorekeeping and multi-round classroom games
+
+Included notebooks:
+- `lessons/lesson13/level_1/Lesson13.ipynb`
+
+## Planned Lesson Arc
+
+The wider lesson sequence is based on the upstream TonyPi tutorial structure and
 its main program folders under `Functions/` and the action programming course.
 
-1. Lesson 1 - Robot Demo
+1. Lesson 1 - TonyPi Show Starter
 2. Lesson 2 - Talking, head movement, and gestures
 3. Lesson 3 - Action groups and performances
 4. Lesson 4 - Single color detection
@@ -77,8 +110,16 @@ its main program folders under `Functions/` and the action programming course.
 10. Lesson 10 - Tag detection and tag actions
 11. Lesson 11 - Face detect and greeting
 12. Lesson 12 - Pickup and intelligent transport
+13. Lesson 13 - Rock Paper Scissors
 
-See [LESSON_STRUCTURE.md](./docs/LESSON_STRUCTURE.md) for the full mapping.
+See [LESSON_STRUCTURE.md](./docs/LESSON_STRUCTURE.md) for the broader mapping plan.
+
+## Lesson Notes
+
+- Lesson 1 is the best starting point for bringing up a new TonyPi robot or checking the student API.
+- Lesson 13 depends on hand recognition and works best when MediaPipe is available on the robot image.
+- Vision support is strongest today for colors, faces, tags, snapshots, and hand recognition.
+- Object detection and fully autonomous pickup are still being expanded.
 
 ## Integration Notes
 
