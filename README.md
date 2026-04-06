@@ -108,6 +108,19 @@ Summary:
 Included notebooks:
 - `lessons/lesson14/level_1/Lesson14.ipynb`
 
+### Lesson 15 - Wireless Joystick Control
+
+Path: `lessons/lesson15`
+
+Summary:
+- introduces the TonyPi wireless controller button map
+- documents the normal buttons, dance buttons, and controller modes
+- shows how the controller lessons connect to the student API
+- helps students test movement, gestures, and dances with the joystick
+
+Included notebooks:
+- `lessons/lesson15/level_1/Lesson15.ipynb`
+
 ## Planned Lesson Arc
 
 The wider lesson sequence is based on the upstream TonyPi tutorial structure and
@@ -127,6 +140,7 @@ its main program folders under `Functions/` and the action programming course.
 12. Lesson 12 - Pickup and intelligent transport
 13. Lesson 13 - Rock Paper Scissors
 14. Lesson 14 - Multi-Control Robot Team
+15. Lesson 15 - Wireless Joystick Control
 
 See [LESSON_STRUCTURE.md](./docs/LESSON_STRUCTURE.md) for the broader mapping plan.
 
@@ -135,6 +149,7 @@ See [LESSON_STRUCTURE.md](./docs/LESSON_STRUCTURE.md) for the broader mapping pl
 - Lesson 1 is the best starting point for bringing up a new TonyPi robot or checking the student API.
 - Lesson 13 depends on hand recognition and works best when MediaPipe is available on the robot image.
 - Lesson 14 depends on the robot-console and robot_ops_web TonyPi multi-control APIs.
+- Lesson 15 focuses on the wireless joystick and the upstream TonyPi button layout.
 - Vision support is strongest today for colors, faces, tags, snapshots, and hand recognition.
 - Object detection and fully autonomous pickup are still being expanded.
 

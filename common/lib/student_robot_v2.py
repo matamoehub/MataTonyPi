@@ -8,6 +8,7 @@ import time
 from typing import Any
 
 import action_group_lib
+import controller_lib
 import head_lib
 import tonypi_support as support
 import tts_lib
@@ -334,6 +335,32 @@ class VoiceNamespace(_Namespace):
         return self.say("Hmm. Let me think.")
 
 
+class ControllerNamespace(_Namespace):
+    def buttons(self):
+        return controller_lib.buttons()
+
+    def show_buttons(self):
+        mapping = controller_lib.buttons()
+        for button, action in mapping.items():
+            print(f"{button}: {action}")
+        return mapping
+
+    def dance_buttons(self):
+        return controller_lib.dance_buttons()
+
+    def show_dance_buttons(self):
+        mapping = controller_lib.dance_buttons()
+        for button, action in mapping.items():
+            print(f"{button}: {action}")
+        return mapping
+
+    def modes(self):
+        return controller_lib.modes()
+
+    def summary(self):
+        return controller_lib.summary()
+
+
 class RobotV2:
     def __init__(self, verbose: bool = True):
         self.verbose = bool(verbose)
@@ -345,6 +372,7 @@ class RobotV2:
         self.vision = VisionNamespace(self)
         self.pickup = PickupNamespace(self)
         self.voice = VoiceNamespace(self)
+        self.controller = ControllerNamespace(self)
         self.tts = self.voice
 
     def _backend_name(self) -> str:
@@ -422,7 +450,7 @@ class RobotV2:
             "vendor_root": str(support.resolve_vendor_root()),
             "action_groups_found": len(support.list_action_groups()),
             "dance_action_groups": len(support.dance_action_groups()),
-            "namespaces": ["anim", "head", "arms", "pose", "motion", "vision", "pickup", "voice"],
+            "namespaces": ["anim", "head", "arms", "pose", "motion", "vision", "pickup", "voice", "controller"],
         }
 
     def home(self):

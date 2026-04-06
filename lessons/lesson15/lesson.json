@@ -1,0 +1,13 @@
+{
+  "id": "lesson15",
+  "title": "Lesson 15 - Wireless Joystick Control",
+  "description": "Learn the TonyPi wireless controller button map, controller modes, and dance shortcuts.",
+  "summary": "Learn the TonyPi wireless controller button map, controller modes, and dance shortcuts.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1 - Controller Basics",
+      "entry": "Lesson15.ipynb"
+    }
+  ]
+}

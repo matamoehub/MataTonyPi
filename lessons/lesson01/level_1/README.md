@@ -282,6 +282,27 @@ myRobot.voice.select_voice("amy")
 myRobot.voice.say("Hello from TonyPi")
 ```
 
+## Controller Commands
+
+Use `myRobot.controller` to inspect the TonyPi wireless controller mapping.
+
+### Available functions
+
+- `myRobot.controller.buttons()`
+- `myRobot.controller.show_buttons()`
+- `myRobot.controller.dance_buttons()`
+- `myRobot.controller.show_dance_buttons()`
+- `myRobot.controller.modes()`
+- `myRobot.controller.summary()`
+
+### Example
+
+```python
+print(myRobot.controller.summary())
+myRobot.controller.show_buttons()
+myRobot.controller.show_dance_buttons()
+```
+
 ## Success Criteria
 
 - Students can run TonyPi speech, animation, head, arm, pose, and motion commands.

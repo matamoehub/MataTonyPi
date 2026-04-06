@@ -135,6 +135,15 @@ Vision calls should return a simple result object with fields like:
 - `celebrate()`
 - `think()`
 
+### `myRobot.controller`
+
+- `buttons()`
+- `show_buttons()`
+- `dance_buttons()`
+- `show_dance_buttons()`
+- `modes()`
+- `summary()`
+
 ## Public API Rules
 
 - Students import only `student_robot_v2`.
