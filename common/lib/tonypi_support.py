@@ -16,6 +16,22 @@ from pathlib import Path
 from typing import Any, Iterable
 
 
+DEFAULT_PIPER_VOICE = "amy"
+PIPER_VOICE_ENV = "MATA_PIPER_VOICE"
+PIPER_VOICE_DIR = Path("/opt/robot/piper/voices")
+PIPER_VOICE_MAP = {
+    "amy": "en_US-amy-medium.onnx",
+    "ryan": "en_US-ryan-high.onnx",
+    "alan": "en_GB-alan-medium.onnx",
+    "alba": "en_GB-alba-medium.onnx",
+    "cori": "en_GB-cori-medium.onnx",
+    "jenny": "en_GB-jenny_dioco-medium.onnx",
+    "southern": "en_GB-southern_english_female-low.onnx",
+    "bryce": "en_US-bryce-medium.onnx",
+    "kristin": "en_US-kristin-medium.onnx",
+}
+
+
 def repo_root() -> Path:
     here = Path(__file__).resolve()
     for parent in here.parents:
@@ -281,20 +297,44 @@ def _resolve_piper_binary() -> str | None:
     return None
 
 
-def _resolve_piper_model() -> str | None:
+def available_voices(installed_only: bool = True) -> list[str]:
+    voices = list(PIPER_VOICE_MAP.keys())
+    if not installed_only:
+        return voices
+    return [name for name in voices if (PIPER_VOICE_DIR / PIPER_VOICE_MAP[name]).exists()]
+
+
+def resolve_voice_name(voice: str | None = None) -> str:
+    token = str(voice or os.environ.get(PIPER_VOICE_ENV) or DEFAULT_PIPER_VOICE).strip().lower()
+    if token.isdigit():
+        voices = available_voices(installed_only=True)
+        idx = int(token)
+        if not voices:
+            voices = available_voices(installed_only=False)
+        if idx < 1 or idx > len(voices):
+            raise ValueError(f"Voice number out of range: {idx} (1..{len(voices)})")
+        return voices[idx - 1]
+    if token not in PIPER_VOICE_MAP:
+        voices = available_voices(installed_only=False)
+        raise ValueError(f"Unknown voice '{token}'. Available: {voices}")
+    return token
+
+
+def _resolve_piper_model(voice: str | None = None) -> str | None:
     candidates = []
     env_model = str(os.environ.get("MATA_PIPER_MODEL", "")).strip()
     if env_model:
         candidates.append(Path(env_model).expanduser())
 
-    voice_dir = Path("/opt/robot/piper/voices")
-    preferred = [
-        "en_US-amy-medium.onnx",
-        "en_US-ryan-high.onnx",
-        "en_GB-alan-medium.onnx",
-    ]
-    candidates.extend(voice_dir / name for name in preferred)
-    candidates.extend(sorted(voice_dir.glob("*.onnx")) if voice_dir.is_dir() else [])
+    try:
+        selected = resolve_voice_name(voice)
+        candidates.append(PIPER_VOICE_DIR / PIPER_VOICE_MAP[selected])
+    except Exception:
+        pass
+
+    preferred = [PIPER_VOICE_MAP[name] for name in ("amy", "ryan", "alan") if name in PIPER_VOICE_MAP]
+    candidates.extend(PIPER_VOICE_DIR / name for name in preferred)
+    candidates.extend(sorted(PIPER_VOICE_DIR.glob("*.onnx")) if PIPER_VOICE_DIR.is_dir() else [])
 
     seen: set[str] = set()
     for candidate in candidates:
@@ -307,9 +347,10 @@ def _resolve_piper_model() -> str | None:
     return None
 
 
-def _say_with_piper(text: str, block: bool = True) -> Any:
+def _say_with_piper(text: str, block: bool = True, voice: str | None = None) -> Any:
     piper_bin = _resolve_piper_binary()
-    model = _resolve_piper_model()
+    selected = resolve_voice_name(voice)
+    model = _resolve_piper_model(selected)
     if not piper_bin or not model:
         raise RuntimeError("Piper binary or model unavailable")
 
@@ -337,10 +378,10 @@ def _say_with_piper(text: str, block: bool = True) -> Any:
     proc = subprocess.Popen(play_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if block:
         proc.wait()
-    return {"cmd": piper_bin, "model": model, "output_file": str(output_file), "player": player}
+    return {"cmd": piper_bin, "model": model, "voice": selected, "output_file": str(output_file), "player": player}
 
 
-def say(text: str, block: bool = True) -> Any:
+def say(text: str, block: bool = True, voice: str | None = None) -> Any:
     ensure_vendor_paths()
     local_tts = Path(__file__).resolve().parent / "tts_lib.py"
     for module_name in ("tts_lib", "voice_interaction.tts", "voice_interaction.tts_node"):
@@ -354,10 +395,13 @@ def say(text: str, block: bool = True) -> Any:
         for fn_name in ("say", "speak"):
             fn = getattr(mod, fn_name, None)
             if callable(fn):
-                return fn(str(text), block=bool(block))
+                try:
+                    return fn(str(text), voice=voice, block=bool(block))
+                except TypeError:
+                    return fn(str(text), block=bool(block))
 
     try:
-        return _say_with_piper(text=str(text), block=bool(block))
+        return _say_with_piper(text=str(text), block=bool(block), voice=voice)
     except Exception:
         pass
 

@@ -232,8 +232,26 @@ class PickupNamespace(_Namespace):
 
 
 class VoiceNamespace(_Namespace):
-    def say(self, text: str, block: bool = True):
-        return self._owner.say(text=text, block=block)
+    def say(self, text: str, block: bool = True, voice: str | None = None):
+        return self._owner.say(text=text, block=block, voice=voice)
+
+    def speak(self, text: str, block: bool = True, voice: str | None = None):
+        return self.say(text=text, block=block, voice=voice)
+
+    def voices(self):
+        return tts_lib.available_voices(installed_only=True)
+
+    def show_voices(self):
+        return self.voices()
+
+    def select(self, voice: str | None = None, number: int | None = None):
+        return tts_lib.select_voice(voice=voice, number=number)
+
+    def select_voice(self, voice: str | None = None, number: int | None = None):
+        return self.select(voice=voice, number=number)
+
+    def select_voice_number(self, number: int):
+        return self.select(number=number)
 
     def greet(self):
         return self.say("Hello everyone.")
@@ -310,14 +328,14 @@ class RobotV2:
             payload["note"] = str(exc)
             return payload
 
-    def say(self, text: str, block: bool = True):
+    def say(self, text: str, block: bool = True, voice: str | None = None):
         try:
-            result = tts_lib.say(text=text, block=block)
-            payload = self._log("say", text=str(text), block=bool(block))
+            result = tts_lib.say(text=text, voice=voice, block=block)
+            payload = self._log("say", text=str(text), block=bool(block), voice=voice)
             payload["result"] = result
             return payload
         except Exception as exc:
-            payload = self._log("say", text=str(text), block=bool(block))
+            payload = self._log("say", text=str(text), block=bool(block), voice=voice)
             payload["ok"] = False
             payload["note"] = str(exc)
             return payload
