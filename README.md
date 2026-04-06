@@ -59,6 +59,7 @@ if target.found:
 ```
 
 See [API.md](./docs/API.md) for the full proposed surface.
+See [ACTION_GROUPS.md](./docs/ACTION_GROUPS.md) for direct TonyPi action-group access and dance move notes.
 
 ## Current Lessons
 
