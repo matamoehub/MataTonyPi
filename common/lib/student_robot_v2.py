@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import time
 from typing import Any
 
 import action_group_lib
@@ -180,6 +181,10 @@ class MotionNamespace(_Namespace):
 
 
 class VisionNamespace(_Namespace):
+    def _prepare_face_capture(self):
+        self._owner.head.look_up()
+        time.sleep(0.18)
+
     def find_color(self, name: str) -> DetectionResult:
         result = vision_lib.get_vision().find_color(str(name), show=True)
         objects = result.get("objects", [])
@@ -195,6 +200,7 @@ class VisionNamespace(_Namespace):
         return DetectionResult(found=False, label=str(name), note="Object detection backend not implemented yet")
 
     def find_face(self) -> DetectionResult:
+        self._prepare_face_capture()
         result = vision_lib.get_vision().find_face(show=True)
         faces = result.get("faces", [])
         self._log("vision.find_face")
@@ -220,6 +226,7 @@ class VisionNamespace(_Namespace):
         return vision_lib.get_vision().find_color(str(name), show=True)
 
     def track_face(self):
+        self._prepare_face_capture()
         return vision_lib.get_vision().find_face(show=True)
 
     def snapshot(self):
@@ -227,6 +234,7 @@ class VisionNamespace(_Namespace):
 
     def scan_for(self, name: str):
         if str(name).lower() == "face":
+            self._prepare_face_capture()
             return vision_lib.get_vision().find_face(show=True)
         return vision_lib.get_vision().find_color(str(name), show=True)
 
