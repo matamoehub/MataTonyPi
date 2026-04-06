@@ -76,23 +76,53 @@ def _clamp_pixel(value: float, maximum: int) -> int:
 
 class Vision:
     def __init__(self, camera_index: Optional[int] = None, width: int = 640, height: int = 480, warmup_s: float = 0.25, min_area: int = 350):
-        self.camera_index = int(os.environ.get("CAM_INDEX", camera_index if camera_index is not None else 0))
+        env_value = os.environ.get("CAM_INDEX")
+        self.camera_index = int(env_value) if env_value is not None else (camera_index if camera_index is not None else 0)
+        self._camera_env_value = env_value
         self.width = int(width)
         self.height = int(height)
         self.warmup_s = float(warmup_s)
         self.min_area = int(min_area)
         self._profiles: Dict[str, List[HSVRange]] = copy.deepcopy(DEFAULT_COLOR_PROFILES)
 
-    def _capture_frame(self):
+    def _open_capture(self, index: int):
         cv2, _np = _require_runtime()
-        cap = cv2.VideoCapture(self.camera_index)
-        if not cap.isOpened():
-            raise RuntimeError(
-                f"TonyPi camera failed to open on index {self.camera_index}. "
-                "Try setting CAM_INDEX=1 or CAM_INDEX=2 on this robot."
-            )
+        cap = cv2.VideoCapture(index)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+        return cap
+
+    def _discover_camera_index(self) -> int:
+        candidates = [self.camera_index]
+        for index in range(6):
+            if index not in candidates:
+                candidates.append(index)
+
+        for index in candidates:
+            cap = self._open_capture(index)
+            try:
+                if not cap.isOpened():
+                    continue
+                ok, frame = cap.read()
+                if ok and frame is not None:
+                    self.camera_index = index
+                    return index
+            finally:
+                cap.release()
+
+        attempted = ", ".join(str(index) for index in candidates)
+        raise RuntimeError(
+            "TonyPi camera could not be opened from OpenCV. "
+            f"Tried indices: {attempted}. "
+            "On this robot the working camera is often index 0."
+        )
+
+    def _capture_frame(self):
+        cv2, _np = _require_runtime()
+        capture_index = self._discover_camera_index()
+        cap = self._open_capture(capture_index)
+        if not cap.isOpened():
+            raise RuntimeError(f"TonyPi camera failed to open on index {capture_index}")
         if self.warmup_s > 0:
             time.sleep(self.warmup_s)
 
@@ -295,6 +325,7 @@ _VISION: Vision | None = None
 
 def get_vision() -> Vision:
     global _VISION
-    if _VISION is None:
+    env_value = os.environ.get("CAM_INDEX")
+    if _VISION is None or getattr(_VISION, "_camera_env_value", None) != env_value:
         _VISION = Vision()
     return _VISION
