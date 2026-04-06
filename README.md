@@ -94,6 +94,20 @@ Summary:
 Included notebooks:
 - `lessons/lesson13/level_1/Lesson13.ipynb`
 
+### Lesson 14 - Multi-Control Robot Team
+
+Path: `lessons/lesson14`
+
+Summary:
+- uses the robot-console TonyPi multi-control APIs
+- configures one TonyPi as the server and the others as clients
+- tests synchronized action-group execution across multiple robots
+- uses the full TonyPi action-group catalog and dance id range
+- supports classroom team performances
+
+Included notebooks:
+- `lessons/lesson14/level_1/Lesson14.ipynb`
+
 ## Planned Lesson Arc
 
 The wider lesson sequence is based on the upstream TonyPi tutorial structure and
@@ -112,6 +126,7 @@ its main program folders under `Functions/` and the action programming course.
 11. Lesson 11 - Face detect and greeting
 12. Lesson 12 - Pickup and intelligent transport
 13. Lesson 13 - Rock Paper Scissors
+14. Lesson 14 - Multi-Control Robot Team
 
 See [LESSON_STRUCTURE.md](./docs/LESSON_STRUCTURE.md) for the broader mapping plan.
 
@@ -119,6 +134,7 @@ See [LESSON_STRUCTURE.md](./docs/LESSON_STRUCTURE.md) for the broader mapping pl
 
 - Lesson 1 is the best starting point for bringing up a new TonyPi robot or checking the student API.
 - Lesson 13 depends on hand recognition and works best when MediaPipe is available on the robot image.
+- Lesson 14 depends on the robot-console and robot_ops_web TonyPi multi-control APIs.
 - Vision support is strongest today for colors, faces, tags, snapshots, and hand recognition.
 - Object detection and fully autonomous pickup are still being expanded.
 
