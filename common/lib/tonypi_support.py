@@ -218,6 +218,14 @@ def get_servo_data() -> dict[str, Any]:
 
 
 def head_center() -> tuple[int, int]:
+    env_vertical = str(os.environ.get("MATA_HEAD_CENTER_VERTICAL", "")).strip()
+    env_horizontal = str(os.environ.get("MATA_HEAD_CENTER_HORIZONTAL", "")).strip()
+    if env_vertical or env_horizontal:
+        return (
+            int(env_vertical or 1500),
+            int(env_horizontal or 1500),
+        )
+
     # TonyPi's upstream RPC layer expects logical PWM centers of 1500 for
     # both channels. It only applies the yaml calibration offset to servo 2.
     return 1500, 1500
