@@ -375,9 +375,14 @@ def _say_with_piper(text: str, block: bool = True, voice: str | None = None) -> 
     else:
         play_cmd = [player, str(output_file)]
 
-    proc = subprocess.Popen(play_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if block:
-        proc.wait()
+        completed = subprocess.run(play_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+        if completed.returncode != 0:
+            raise RuntimeError(
+                f"Audio playback failed with code {completed.returncode}: {completed.stderr.strip()}"
+            )
+    else:
+        subprocess.Popen(play_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return {"cmd": piper_bin, "model": model, "voice": selected, "output_file": str(output_file), "player": player}
 
 
