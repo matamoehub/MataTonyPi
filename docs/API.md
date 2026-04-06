@@ -144,6 +144,21 @@ Vision calls should return a simple result object with fields like:
 - `modes()`
 - `summary()`
 
+### `myRobot.team`
+
+- `local_ip()`
+- `start_server(port=8765)`
+- `stop_server()`
+- `server_status()`
+- `signal(host, cue, payload=None, port=8765, timeout=5.0)`
+- `broadcast(hosts, cue, payload=None, port=8765, timeout=5.0)`
+- `wait_for(cue, timeout=None)`
+- `cues()`
+
+Use the `team` namespace to stage multi-robot performances. One robot starts a
+cue server, and the other robots can wait for named cues such as `"entrance"`
+or `"line_two"` before moving or speaking.
+
 ## Public API Rules
 
 - Students import only `student_robot_v2`.

@@ -121,6 +121,18 @@ Summary:
 Included notebooks:
 - `lessons/lesson15/level_1/Lesson15.ipynb`
 
+### Lesson 16 - Two-Robot Performance Cues
+
+Path: `lessons/lesson16`
+
+This lesson:
+- shows how a partner TonyPi can start a cue server
+- shows how a leader TonyPi can send named cues
+- helps students build a duet where robots speak and move in sequence
+
+Key file:
+- `lessons/lesson16/level_1/Lesson16.ipynb`
+
 ## Planned Lesson Arc
 
 The wider lesson sequence is based on the upstream TonyPi tutorial structure and
@@ -141,6 +153,7 @@ its main program folders under `Functions/` and the action programming course.
 13. Lesson 13 - Rock Paper Scissors
 14. Lesson 14 - Multi-Control Robot Team
 15. Lesson 15 - Wireless Joystick Control
+16. Lesson 16 - Two-Robot Performance Cues
 
 See [LESSON_STRUCTURE.md](./docs/LESSON_STRUCTURE.md) for the broader mapping plan.
 
@@ -150,6 +163,7 @@ See [LESSON_STRUCTURE.md](./docs/LESSON_STRUCTURE.md) for the broader mapping pl
 - Lesson 13 depends on hand recognition and works best when MediaPipe is available on the robot image.
 - Lesson 14 depends on the robot-console and robot_ops_web TonyPi multi-control APIs.
 - Lesson 15 focuses on the wireless joystick and the upstream TonyPi button layout.
+- Lesson 16 focuses on cue-based performances where one TonyPi can trigger another.
 - Vision support is strongest today for colors, faces, tags, snapshots, and hand recognition.
 - Object detection and fully autonomous pickup are still being expanded.
 

@@ -303,6 +303,27 @@ myRobot.controller.show_buttons()
 myRobot.controller.show_dance_buttons()
 ```
 
+## Team Cue Commands
+
+Use `myRobot.team` when two or more TonyPi robots need to coordinate a shared
+performance.
+
+- `myRobot.team.local_ip()`
+- `myRobot.team.start_server()`
+- `myRobot.team.stop_server()`
+- `myRobot.team.server_status()`
+- `myRobot.team.signal(host, cue, payload=None)`
+- `myRobot.team.broadcast(hosts, cue, payload=None)`
+- `myRobot.team.wait_for(cue, timeout=None)`
+- `myRobot.team.cues()`
+
+Example:
+
+```python
+print(myRobot.team.start_server())
+print(myRobot.team.wait_for("entrance", timeout=30))
+```
+
 ## Success Criteria
 
 - Students can run TonyPi speech, animation, head, arm, pose, and motion commands.

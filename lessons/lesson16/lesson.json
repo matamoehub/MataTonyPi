@@ -1,0 +1,13 @@
+{
+  "id": "lesson16",
+  "title": "Lesson 16 - Two-Robot Performance Cues",
+  "description": "Use named cues so one TonyPi can trigger another during a shared speaking and movement routine.",
+  "summary": "Use named cues so one TonyPi can trigger another during a shared speaking and movement routine.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1 - Robot Duet",
+      "entry": "Lesson16.ipynb"
+    }
+  ]
+}

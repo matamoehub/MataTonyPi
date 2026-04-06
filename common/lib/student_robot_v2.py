@@ -10,6 +10,7 @@ from typing import Any
 import action_group_lib
 import controller_lib
 import head_lib
+import signal_lib
 import tonypi_support as support
 import tts_lib
 import vision_lib
@@ -361,6 +362,52 @@ class ControllerNamespace(_Namespace):
         return controller_lib.summary()
 
 
+class TeamNamespace(_Namespace):
+    def local_ip(self):
+        return signal_lib.local_ip()
+
+    def start_server(self, port: int = 8765):
+        return self._owner._wrap_call("team.start_server", signal_lib.start_server, port=int(port))
+
+    def stop_server(self):
+        return self._owner._wrap_call("team.stop_server", signal_lib.stop_server)
+
+    def server_status(self):
+        return signal_lib.status()
+
+    def signal(self, host: str, cue: str, payload: Any = None, port: int = 8765, timeout: float = 5.0):
+        return self._owner._wrap_call(
+            "team.signal",
+            signal_lib.send,
+            host=str(host),
+            cue=str(cue),
+            payload=payload,
+            port=int(port),
+            timeout=float(timeout),
+        )
+
+    def broadcast(self, hosts: list[str], cue: str, payload: Any = None, port: int = 8765, timeout: float = 5.0):
+        host_list = [str(host).strip() for host in hosts if str(host).strip()]
+        return self._owner._wrap_call(
+            "team.broadcast",
+            signal_lib.broadcast,
+            hosts=host_list,
+            cue=str(cue),
+            payload=payload,
+            port=int(port),
+            timeout=float(timeout),
+        )
+
+    def wait_for(self, cue: str, timeout: float | None = None):
+        kwargs = {"cue": str(cue)}
+        if timeout is not None:
+            kwargs["timeout"] = float(timeout)
+        return self._owner._wrap_call("team.wait_for", signal_lib.wait_for, **kwargs)
+
+    def cues(self):
+        return signal_lib.cue_history()
+
+
 class RobotV2:
     def __init__(self, verbose: bool = True):
         self.verbose = bool(verbose)
@@ -373,6 +420,7 @@ class RobotV2:
         self.pickup = PickupNamespace(self)
         self.voice = VoiceNamespace(self)
         self.controller = ControllerNamespace(self)
+        self.team = TeamNamespace(self)
         self.tts = self.voice
 
     def _backend_name(self) -> str:
@@ -450,7 +498,7 @@ class RobotV2:
             "vendor_root": str(support.resolve_vendor_root()),
             "action_groups_found": len(support.list_action_groups()),
             "dance_action_groups": len(support.dance_action_groups()),
-            "namespaces": ["anim", "head", "arms", "pose", "motion", "vision", "pickup", "voice", "controller"],
+            "namespaces": ["anim", "head", "arms", "pose", "motion", "vision", "pickup", "voice", "controller", "team"],
         }
 
     def home(self):
