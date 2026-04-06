@@ -218,9 +218,16 @@ def get_servo_data() -> dict[str, Any]:
 
 
 def head_center() -> tuple[int, int]:
+    # TonyPi's upstream RPC layer expects logical PWM centers of 1500 for
+    # both channels. It only applies the yaml calibration offset to servo 2.
+    return 1500, 1500
+
+
+def _head_physical_pulses(vertical: int, horizontal: int) -> tuple[int, int]:
     servo_data = get_servo_data()
-    vertical = int(servo_data.get("servo1", 1500))
-    horizontal = int(servo_data.get("servo2", 1500))
+    vertical = int(vertical)
+    horizontal = int(horizontal)
+    horizontal = horizontal + int(servo_data.get("servo2", 1500)) - 1500
     return vertical, horizontal
 
 
@@ -230,16 +237,26 @@ def set_head(vertical: int | None = None, horizontal: int | None = None, duratio
     center_vertical, center_horizontal = head_center()
     vertical = center_vertical if vertical is None else int(vertical)
     horizontal = center_horizontal if horizontal is None else int(horizontal)
+    physical_vertical, physical_horizontal = _head_physical_pulses(vertical, horizontal)
 
     if ctl is not None:
-        ctl.set_pwm_servo_pulse(1, vertical, int(duration_ms))
-        ctl.set_pwm_servo_pulse(2, horizontal, int(duration_ms))
+        ctl.set_pwm_servo_pulse(1, physical_vertical, int(duration_ms))
+        ctl.set_pwm_servo_pulse(2, physical_horizontal, int(duration_ms))
     elif board is not None:
-        board.pwm_servo_set_position(float(duration_ms) / 1000.0, [[1, vertical], [2, horizontal]])
+        board.pwm_servo_set_position(
+            float(duration_ms) / 1000.0,
+            [[1, physical_vertical], [2, physical_horizontal]],
+        )
     else:
         raise RuntimeError("TonyPi head controller unavailable")
 
-    return {"vertical": vertical, "horizontal": horizontal, "duration_ms": int(duration_ms)}
+    return {
+        "vertical": vertical,
+        "horizontal": horizontal,
+        "physical_vertical": physical_vertical,
+        "physical_horizontal": physical_horizontal,
+        "duration_ms": int(duration_ms),
+    }
 
 
 def run_action(name: str, times: int = 1, lock_servos: str = "") -> dict[str, Any]:
