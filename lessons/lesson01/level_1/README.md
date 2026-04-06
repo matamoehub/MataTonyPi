@@ -1,10 +1,10 @@
-# Lesson 1 - TonyPi Feature Tour
+# Lesson 1 - TonyPi Show Starter
 
 ## Goal
 
-Introduce students to the full `student_robot_v2` API through a guided robot tour.
+Introduce students to TonyPi's main commands, then help them build a short robot performance with personality.
 
-## What students should do
+## What students will use
 
 - connect to the lesson robot with `lesson_header`
 - make TonyPi talk and greet the class
@@ -13,6 +13,12 @@ Introduce students to the full `student_robot_v2` API through a guided robot tou
 - inspect vision results from the classroom API
 - run pickup-style actions
 - combine several commands into a short robot performance
+
+## Success criteria
+
+- Students can run TonyPi speech, animation, head, arm, pose, and motion commands.
+- Students understand that vision and pickup commands exist even when the backend is stubbed.
+- Students can remix the final routine into their own short performance.
 
 ## Library Rule
 
