@@ -353,6 +353,57 @@ def action_name_for_id(action_id: str | int) -> str | None:
     return get_action_group_dict().get(str(action_id))
 
 
+def _action_category(name: str, action_id: str | None = None) -> str:
+    token = _normalize(name)
+    if action_id is not None:
+        try:
+            idx = int(action_id)
+            if 16 <= idx <= 24:
+                return "dance"
+        except Exception:
+            pass
+
+    if any(part in token for part in ("dance", "twist", "stepping", "chest", "weightlifting")):
+        return "dance"
+    if any(part in token for part in ("forward", "back", "move", "turn", "walk", "step")):
+        return "motion"
+    if any(part in token for part in ("wave", "bow", "greet", "hello")):
+        return "greeting"
+    if any(part in token for part in ("kick", "shot", "shoot")):
+        return "sport"
+    if any(part in token for part in ("grab", "pickup", "carry", "release", "place", "transport", "catch")):
+        return "pickup"
+    if any(part in token for part in ("stand", "sit", "squat", "rest", "ready", "home")):
+        return "pose"
+    return "action"
+
+
+def action_group_catalog() -> list[dict[str, Any]]:
+    names = list_action_groups()
+    id_map = get_action_group_dict()
+    name_to_ids: dict[str, list[str]] = {}
+    for action_id, name in id_map.items():
+        name_to_ids.setdefault(str(name), []).append(str(action_id))
+
+    catalog: list[dict[str, Any]] = []
+    for name in names:
+        ids = sorted(name_to_ids.get(str(name), []), key=lambda item: int(item) if item.isdigit() else item)
+        primary_id = ids[0] if ids else None
+        catalog.append(
+            {
+                "name": str(name),
+                "ids": ids,
+                "id": primary_id,
+                "category": _action_category(str(name), primary_id),
+            }
+        )
+    return catalog
+
+
+def dance_action_groups() -> list[dict[str, Any]]:
+    return [item for item in action_group_catalog() if item["category"] == "dance"]
+
+
 def _resolve_piper_binary() -> str | None:
     candidates = [
         "/home/pi/.local/bin/piper",

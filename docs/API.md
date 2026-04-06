@@ -38,6 +38,12 @@ if result.found:
 
 ### `myRobot.anim`
 
+- `list_action_groups()`
+- `show_action_groups()`
+- `run(name, times=1)`
+- `run_id(action_id, times=1)`
+- `catalog()`
+- `dance_moves()`
 - `wave()`
 - `greet()`
 - `dance()`
@@ -136,3 +142,4 @@ Vision calls should return a simple result object with fields like:
 - Behind the scenes we can split implementation into helper modules later, but
   those remain private.
 - Expressive actions should be available before advanced autonomous tasks.
+- All installed TonyPi action groups should remain reachable through `myRobot.anim.run(...)` or `myRobot.anim.run_id(...)` even if they are not wrapped by a named helper yet.

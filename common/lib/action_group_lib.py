@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from tonypi_support import action_name_for_id, list_action_groups, resolve_action_name, run_action, sleep, stop_actions
+from tonypi_support import action_group_catalog, action_name_for_id, dance_action_groups, list_action_groups, resolve_action_name, run_action, sleep, stop_actions
 
 
 ARM_SETTLE_S = 0.18
@@ -17,6 +17,14 @@ def _maybe_settle(name: str) -> None:
 
 def list_actions() -> list[str]:
     return list_action_groups()
+
+
+def catalog() -> list[dict[str, object]]:
+    return action_group_catalog()
+
+
+def dances() -> list[dict[str, object]]:
+    return dance_action_groups()
 
 
 def run(name: str, times: int = 1):

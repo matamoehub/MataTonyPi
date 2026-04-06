@@ -40,6 +40,29 @@ class _Namespace:
 
 
 class AnimationNamespace(_Namespace):
+    def list_action_groups(self):
+        return action_group_lib.list_actions()
+
+    def show_action_groups(self):
+        actions = action_group_lib.catalog()
+        for item in actions:
+            action_id = item.get("id")
+            prefix = f"[{action_id}] " if action_id else ""
+            print(f"{prefix}{item['name']} ({item['category']})")
+        return actions
+
+    def run(self, name: str, times: int = 1):
+        return self._owner._wrap_call("anim.run", action_group_lib.run, name=str(name), times=max(1, int(times)))
+
+    def run_id(self, action_id: str | int, times: int = 1):
+        return self._owner._wrap_call("anim.run_id", action_group_lib.run_id, action_id=action_id, times=max(1, int(times)))
+
+    def catalog(self):
+        return action_group_lib.catalog()
+
+    def dance_moves(self):
+        return action_group_lib.dances()
+
     def wave(self):
         return self._run_action("anim.wave", ["wave", ("hello",), ("greet",)])
 
@@ -398,6 +421,7 @@ class RobotV2:
             "backend": self._backend_name(),
             "vendor_root": str(support.resolve_vendor_root()),
             "action_groups_found": len(support.list_action_groups()),
+            "dance_action_groups": len(support.dance_action_groups()),
             "namespaces": ["anim", "head", "arms", "pose", "motion", "vision", "pickup", "voice"],
         }
 
