@@ -272,10 +272,14 @@ def action_name_for_id(action_id: str | int) -> str | None:
 
 def say(text: str, block: bool = True) -> Any:
     ensure_vendor_paths()
+    local_tts = Path(__file__).resolve().parent / "tts_lib.py"
     for module_name in ("tts_lib", "voice_interaction.tts", "voice_interaction.tts_node"):
         try:
             mod = importlib.import_module(module_name)
         except Exception:
+            continue
+        mod_file = Path(getattr(mod, "__file__", "")).resolve(strict=False) if getattr(mod, "__file__", None) else None
+        if mod_file == local_tts:
             continue
         for fn_name in ("say", "speak"):
             fn = getattr(mod, fn_name, None)
