@@ -520,6 +520,11 @@ def _say_with_piper(text: str, block: bool = True, voice: str | None = None) -> 
 
 def say(text: str, block: bool = True, voice: str | None = None) -> Any:
     ensure_vendor_paths()
+    try:
+        return _say_with_piper(text=str(text), block=bool(block), voice=voice)
+    except Exception:
+        pass
+
     local_tts = Path(__file__).resolve().parent / "tts_lib.py"
     for module_name in ("tts_lib", "voice_interaction.tts", "voice_interaction.tts_node"):
         try:
@@ -536,11 +541,6 @@ def say(text: str, block: bool = True, voice: str | None = None) -> Any:
                     return fn(str(text), voice=voice, block=bool(block))
                 except TypeError:
                     return fn(str(text), block=bool(block))
-
-    try:
-        return _say_with_piper(text=str(text), block=bool(block), voice=voice)
-    except Exception:
-        pass
 
     for cmd in ("espeak-ng", "espeak", "spd-say"):
         if not shutil.which(cmd):
