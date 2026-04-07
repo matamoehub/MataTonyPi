@@ -240,6 +240,15 @@ print(myRobot.status())
 
 ### Top-level commands
 
+Use these for the simplest whole-robot actions.
+
+- `myRobot.say(text)`: make TonyPi speak a line of text.
+- `myRobot.stop()`: stop the current motion or action group.
+- `myRobot.status()`: show backend and capability information.
+- `myRobot.home()`: return TonyPi to its home pose.
+- `myRobot.stand()`: stand upright.
+- `myRobot.sit()`: move into a sitting or resting pose.
+
 ```python
 myRobot.say("Hello everyone")
 myRobot.stop()
@@ -250,6 +259,18 @@ myRobot.sit()
 ```
 
 ### Animation commands
+
+Use these for expressive performance-style moves.
+
+- `myRobot.anim.wave()`: wave at the audience.
+- `myRobot.anim.greet()`: run a greeting animation.
+- `myRobot.anim.dance()`: perform a dance-style move.
+- `myRobot.anim.celebrate()`: perform a happy celebration move.
+- `myRobot.anim.think()`: act thoughtful.
+- `myRobot.anim.sad()`: perform a sad or lowered pose.
+- `myRobot.anim.yes()`: make a yes-style gesture.
+- `myRobot.anim.no()`: make a no-style gesture.
+- `myRobot.anim.scan()`: look around as if searching.
 
 ```python
 myRobot.anim.wave()
@@ -267,6 +288,13 @@ myRobot.anim.scan()
 
 These give direct access to installed TonyPi action groups.
 
+- `myRobot.anim.list_action_groups()`: return the installed action-group names.
+- `myRobot.anim.show_action_groups()`: print the available action groups.
+- `myRobot.anim.catalog()`: return grouped action-group information.
+- `myRobot.anim.dance_moves()`: return the dance move list.
+- `myRobot.anim.run(name)`: run an action group by name.
+- `myRobot.anim.run_id(id)`: run an action group by numeric id.
+
 ```python
 print(myRobot.anim.list_action_groups())
 myRobot.anim.show_action_groups()
@@ -277,6 +305,17 @@ myRobot.anim.run_id(16)
 ```
 
 ### Head commands
+
+Use these to control where TonyPi is looking.
+
+- `myRobot.head.look_left()`: turn the head left.
+- `myRobot.head.look_right()`: turn the head right.
+- `myRobot.head.look_up()`: tilt the head upward.
+- `myRobot.head.look_down()`: tilt the head downward.
+- `myRobot.head.center()`: return the head to neutral center.
+- `myRobot.head.nod()`: make a yes-style nod.
+- `myRobot.head.shake()`: make a no-style shake.
+- `myRobot.head.scan()`: sweep the head around to search.
 
 ```python
 myRobot.head.look_left()
@@ -290,6 +329,18 @@ myRobot.head.scan()
 ```
 
 ### Arm commands
+
+Use these to create gestures and pose changes with the arms.
+
+- `myRobot.arms.left_up()`: raise the left arm.
+- `myRobot.arms.right_up()`: raise the right arm.
+- `myRobot.arms.hands_up()`: raise both arms.
+- `myRobot.arms.open()`: open the arms or hands outward.
+- `myRobot.arms.close()`: bring the arms or hands inward.
+- `myRobot.arms.center()`: return the arms to center.
+- `myRobot.arms.grab_pose()`: move into a grabbing pose.
+- `myRobot.arms.carry_pose()`: move into a carry pose.
+- `myRobot.arms.release_pose()`: move into a release pose.
 
 ```python
 myRobot.arms.left_up()
@@ -305,6 +356,15 @@ myRobot.arms.release_pose()
 
 ### Pose commands
 
+Use these when you want a stable full-body pose.
+
+- `myRobot.pose.ready()`: go to a ready standing pose.
+- `myRobot.pose.neutral()`: go to a neutral pose.
+- `myRobot.pose.bow()`: perform a bow.
+- `myRobot.pose.stand()`: stand upright.
+- `myRobot.pose.sit()`: sit down or squat.
+- `myRobot.pose.carry()`: switch to a carrying pose.
+
 ```python
 myRobot.pose.ready()
 myRobot.pose.neutral()
@@ -315,6 +375,17 @@ myRobot.pose.carry()
 ```
 
 ### Movement commands
+
+Use these for walking and turning around the floor.
+
+- `myRobot.motion.walk_forward(steps=1)`: walk forward by a small number of step cycles.
+- `myRobot.motion.walk_backward(steps=1)`: walk backward by a small number of step cycles.
+- `myRobot.motion.turn_left(steps=1)`: rotate left.
+- `myRobot.motion.turn_right(steps=1)`: rotate right.
+- `myRobot.motion.step_left(steps=1)`: sidestep left.
+- `myRobot.motion.step_right(steps=1)`: sidestep right.
+- `myRobot.motion.approach()`: take a short approach step.
+- `myRobot.motion.stop()`: stop movement.
 
 ```python
 myRobot.motion.walk_forward(steps=1)
@@ -328,6 +399,18 @@ myRobot.motion.stop()
 ```
 
 ### Vision commands
+
+Use these to test what the robot camera can detect.
+
+- `myRobot.vision.find_color(name)`: detect a colored object such as blue or red.
+- `myRobot.vision.find_object(name)`: try object detection for a named object.
+- `myRobot.vision.find_face()`: detect a face.
+- `myRobot.vision.find_tag(tag_id)`: detect an AprilTag by id.
+- `myRobot.vision.recognize_hands(show=True)`: run hand recognition.
+- `myRobot.vision.track_color(name)`: run color tracking.
+- `myRobot.vision.track_face()`: run face tracking.
+- `myRobot.vision.scan_for(name)`: scan for a supported target.
+- `myRobot.vision.snapshot()`: capture an image from the camera.
 
 ```python
 print(myRobot.vision.find_color("blue").to_dict())
@@ -350,6 +433,16 @@ Vision notes:
 
 ### Pickup commands
 
+Use these for pickup-story demos and carrying actions.
+
+- `myRobot.pickup.approach_object(name)`: move toward the target object.
+- `myRobot.pickup.pick_up(name)`: perform a pickup action.
+- `myRobot.pickup.grab()`: close into a grabbing action.
+- `myRobot.pickup.carry()`: switch into carrying mode.
+- `myRobot.pickup.place_down()`: place the object down.
+- `myRobot.pickup.release()`: release the grasp.
+- `myRobot.pickup.transport(name)`: run a transport-style action.
+
 ```python
 myRobot.pickup.approach_object("cube")
 myRobot.pickup.pick_up("cube")
@@ -361,6 +454,16 @@ myRobot.pickup.transport("cube")
 ```
 
 ### Voice commands
+
+Use these to speak or manage the current voice.
+
+- `myRobot.voice.say(text)`: speak a line.
+- `myRobot.voice.greet()`: say a short greeting phrase.
+- `myRobot.voice.celebrate()`: say a celebration phrase.
+- `myRobot.voice.think()`: say a thinking phrase.
+- `myRobot.voice.voices()`: list the installed voices.
+- `myRobot.voice.select_voice(name)`: choose a voice by name.
+- `myRobot.voice.select_voice_number(number)`: choose a voice by number.
 
 ```python
 myRobot.voice.say("Hello from TonyPi")
@@ -376,6 +479,13 @@ print(myRobot.voice.select_voice_number(1))
 
 These are reference helpers for the TonyPi wireless controller layout.
 
+- `myRobot.controller.buttons()`: return the standard button map.
+- `myRobot.controller.show_buttons()`: print the standard button map.
+- `myRobot.controller.dance_buttons()`: return the dance shortcut map.
+- `myRobot.controller.show_dance_buttons()`: print the dance shortcut map.
+- `myRobot.controller.modes()`: return controller mode notes.
+- `myRobot.controller.summary()`: return all controller reference information.
+
 ```python
 print(myRobot.controller.buttons())
 myRobot.controller.show_buttons()
@@ -388,6 +498,15 @@ print(myRobot.controller.summary())
 ### Team cue commands
 
 Use these when two or more TonyPi robots are performing together.
+
+- `myRobot.team.local_ip()`: show this robot's IP address.
+- `myRobot.team.start_server()`: start the local cue server.
+- `myRobot.team.server_status()`: show whether the cue server is running.
+- `myRobot.team.signal(host, cue)`: send one named cue to another robot.
+- `myRobot.team.broadcast(hosts, cue)`: send the same cue to several robots.
+- `myRobot.team.wait_for(cue, timeout=...)`: block until a named cue arrives.
+- `myRobot.team.cues()`: show received cue history.
+- `myRobot.team.stop_server()`: stop the cue server.
 
 ```python
 print(myRobot.team.local_ip())
