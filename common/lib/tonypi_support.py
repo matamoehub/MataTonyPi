@@ -350,7 +350,11 @@ def resolve_action_name(candidates: Iterable[str | tuple[str, ...]]) -> str | No
 
 
 def action_name_for_id(action_id: str | int) -> str | None:
-    return get_action_group_dict().get(str(action_id))
+    token = str(action_id).strip()
+    available = set(list_action_groups())
+    if token in available:
+        return token
+    return get_action_group_dict().get(token)
 
 
 def _action_category(name: str, action_id: str | None = None) -> str:
