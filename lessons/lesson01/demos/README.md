@@ -223,3 +223,191 @@ Why it is there:
 - if speech is silent, check the configured audio device and Piper playback path
 - if a movement looks wrong, test the command on its own before running the full show
 - use the stage sections one at a time when debugging
+
+## Full Command Reference
+
+This section lists the full TonyPi student API with short examples that are
+useful when extending the demo.
+
+### Start here
+
+```python
+from student_robot_v2 import bot
+
+myRobot = bot()
+print(myRobot.status())
+```
+
+### Top-level commands
+
+```python
+myRobot.say("Hello everyone")
+myRobot.stop()
+print(myRobot.status())
+myRobot.home()
+myRobot.stand()
+myRobot.sit()
+```
+
+### Animation commands
+
+```python
+myRobot.anim.wave()
+myRobot.anim.greet()
+myRobot.anim.dance()
+myRobot.anim.celebrate()
+myRobot.anim.think()
+myRobot.anim.sad()
+myRobot.anim.yes()
+myRobot.anim.no()
+myRobot.anim.scan()
+```
+
+### Action-group commands
+
+These give direct access to installed TonyPi action groups.
+
+```python
+print(myRobot.anim.list_action_groups())
+myRobot.anim.show_action_groups()
+print(myRobot.anim.catalog())
+print(myRobot.anim.dance_moves())
+myRobot.anim.run("wave")
+myRobot.anim.run_id(16)
+```
+
+### Head commands
+
+```python
+myRobot.head.look_left()
+myRobot.head.look_right()
+myRobot.head.look_up()
+myRobot.head.look_down()
+myRobot.head.center()
+myRobot.head.nod()
+myRobot.head.shake()
+myRobot.head.scan()
+```
+
+### Arm commands
+
+```python
+myRobot.arms.left_up()
+myRobot.arms.right_up()
+myRobot.arms.hands_up()
+myRobot.arms.open()
+myRobot.arms.close()
+myRobot.arms.center()
+myRobot.arms.grab_pose()
+myRobot.arms.carry_pose()
+myRobot.arms.release_pose()
+```
+
+### Pose commands
+
+```python
+myRobot.pose.ready()
+myRobot.pose.neutral()
+myRobot.pose.bow()
+myRobot.pose.stand()
+myRobot.pose.sit()
+myRobot.pose.carry()
+```
+
+### Movement commands
+
+```python
+myRobot.motion.walk_forward(steps=1)
+myRobot.motion.walk_backward(steps=1)
+myRobot.motion.turn_left(steps=1)
+myRobot.motion.turn_right(steps=1)
+myRobot.motion.step_left(steps=1)
+myRobot.motion.step_right(steps=1)
+myRobot.motion.approach()
+myRobot.motion.stop()
+```
+
+### Vision commands
+
+```python
+print(myRobot.vision.find_color("blue").to_dict())
+print(myRobot.vision.find_object("cube").to_dict())
+print(myRobot.vision.find_face().to_dict())
+print(myRobot.vision.find_tag(7).to_dict())
+print(myRobot.vision.recognize_hands(show=True))
+print(myRobot.vision.track_color("blue"))
+print(myRobot.vision.track_face())
+print(myRobot.vision.scan_for("blue"))
+print(myRobot.vision.snapshot())
+```
+
+Vision notes:
+
+- `find_color("blue")`, `find_face()`, and `snapshot()` are the most useful demo checks
+- `find_object("cube")` may still be limited depending on the backend
+- `find_tag(7)` depends on AprilTag support being available on the robot image
+- `recognize_hands(show=True)` depends on MediaPipe support
+
+### Pickup commands
+
+```python
+myRobot.pickup.approach_object("cube")
+myRobot.pickup.pick_up("cube")
+myRobot.pickup.grab()
+myRobot.pickup.carry()
+myRobot.pickup.place_down()
+myRobot.pickup.release()
+myRobot.pickup.transport("cube")
+```
+
+### Voice commands
+
+```python
+myRobot.voice.say("Hello from TonyPi")
+myRobot.voice.greet()
+myRobot.voice.celebrate()
+myRobot.voice.think()
+print(myRobot.voice.voices())
+print(myRobot.voice.select_voice("amy"))
+print(myRobot.voice.select_voice_number(1))
+```
+
+### Controller commands
+
+These are reference helpers for the TonyPi wireless controller layout.
+
+```python
+print(myRobot.controller.buttons())
+myRobot.controller.show_buttons()
+print(myRobot.controller.dance_buttons())
+myRobot.controller.show_dance_buttons()
+print(myRobot.controller.modes())
+print(myRobot.controller.summary())
+```
+
+### Team cue commands
+
+Use these when two or more TonyPi robots are performing together.
+
+```python
+print(myRobot.team.local_ip())
+print(myRobot.team.start_server())
+print(myRobot.team.server_status())
+print(myRobot.team.signal("192.168.50.62", "entrance"))
+print(myRobot.team.broadcast(["192.168.50.62", "192.168.50.63"], "bow"))
+print(myRobot.team.wait_for("entrance", timeout=30))
+print(myRobot.team.cues())
+print(myRobot.team.stop_server())
+```
+
+### Quick demo remix example
+
+```python
+myRobot.head.center()
+myRobot.say("Welcome to my custom show.")
+myRobot.anim.wave()
+myRobot.motion.turn_left(steps=1)
+myRobot.motion.turn_right(steps=1)
+myRobot.anim.celebrate()
+myRobot.home()
+```
