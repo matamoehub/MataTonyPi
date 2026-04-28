@@ -258,6 +258,40 @@ lessons/
     lesson.json
     level_1/
   lesson11/
+
+## README Standard
+
+Each lesson `level_1/README.md` should include enough context for a teacher or
+student to understand the notebook before running it.
+
+Minimum sections:
+
+- `Goal`
+- `Quick Start`
+- `How this lesson works`
+- `What students will use`
+- `Suggested practice flow`
+- `Required flow`
+- `Debugging requirement`
+- `Success criteria`
+- `Challenge ideas`
+- `V2 API focus`
+
+Practical rules:
+
+- write the README as a teaching guide, not a placeholder
+- explain the algorithm or control flow, not just the API call names
+- state what should happen when detection fails
+- include at least one debugging requirement that forces students to inspect runtime values
+- include success criteria that can be tested in the classroom
+- include challenge ideas that extend the lesson without changing its core goal
+
+Examples of stronger documentation patterns:
+
+- explain why a lesson uses loops, thresholds, or pauses
+- explain what values from a result object matter
+- explain the safe order of operations for movement tasks
+- distinguish preview/demo behavior from fully autonomous behavior
     lesson.json
     level_1/
   lesson12/
