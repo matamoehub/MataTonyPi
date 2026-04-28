@@ -1,0 +1,13 @@
+{
+  "id": "lesson04",
+  "title": "Lesson 4 - Single Color Detection",
+  "description": "Capture camera frames and detect a single target color with a robot reaction.",
+  "summary": "Capture camera frames and detect a single target color with a robot reaction.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1 - Guided Practice",
+      "entry": "Lesson04.ipynb"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "lesson09",
+  "title": "Lesson 9 - Line Follow",
+  "description": "Tune camera target detection for patrol lines and maintain alignment.",
+  "summary": "Tune camera target detection for patrol lines and maintain alignment.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1 - Guided Practice",
+      "entry": "Lesson09.ipynb"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "lesson11",
+  "title": "Lesson 11 - Face Detect and Greeting",
+  "description": "Detect faces and respond with greetings, gestures, and tracking behavior.",
+  "summary": "Detect faces and respond with greetings, gestures, and tracking behavior.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1 - Guided Practice",
+      "entry": "Lesson11.ipynb"
+    }
+  ]
+}

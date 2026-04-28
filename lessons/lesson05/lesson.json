@@ -1,0 +1,13 @@
+{
+  "id": "lesson05",
+  "title": "Lesson 5 - Color Recognition and Reactions",
+  "description": "Recognize multiple colors and map each color to different behaviors.",
+  "summary": "Recognize multiple colors and map each color to different behaviors.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1 - Guided Practice",
+      "entry": "Lesson05.ipynb"
+    }
+  ]
+}

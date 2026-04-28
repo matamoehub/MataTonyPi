@@ -1,0 +1,13 @@
+{
+  "id": "lesson10",
+  "title": "Lesson 10 - Tag Detection and Tag Actions",
+  "description": "Detect AprilTags and trigger different actions per tag id.",
+  "summary": "Detect AprilTags and trigger different actions per tag id.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1 - Guided Practice",
+      "entry": "Lesson10.ipynb"
+    }
+  ]
+}

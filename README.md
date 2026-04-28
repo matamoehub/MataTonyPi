@@ -80,6 +80,25 @@ Included notebooks:
 - `lessons/lesson01/level_1/Lesson01.ipynb`
 - `lessons/lesson01/demos/Robot_Demo.ipynb`
 
+### Lessons 2-12 - Core TonyPi Curriculum
+
+Paths: `lessons/lesson02` through `lessons/lesson12`
+
+These lessons now cover the planned V2 progression:
+- Lesson 2: talking, head movement, and gestures
+- Lesson 3: action groups and performances
+- Lesson 4: single color detection
+- Lesson 5: multi-color recognition and reactions
+- Lesson 6: target position recognition
+- Lesson 7: object tracking
+- Lesson 8: auto shooting flow (approach + kick sequence)
+- Lesson 9: line follow logic
+- Lesson 10: tag detection and tag-triggered actions
+- Lesson 11: face detection and greeting behavior
+- Lesson 12: pickup and intelligent transport flow
+
+Each lesson includes a Level 1 notebook (`LessonXX.ipynb`), lesson metadata (`lesson.json`), and loader/header files that initialize the V2 `myRobot` object.
+
 ### Lesson 13 - Rock Paper Scissors
 
 Path: `lessons/lesson13`

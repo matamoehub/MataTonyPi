@@ -1,0 +1,13 @@
+{
+  "id": "lesson02",
+  "title": "Lesson 2 - Talking, Head Movement, and Gestures",
+  "description": "Use speech, head movement, and simple gestures to make TonyPi expressive and responsive.",
+  "summary": "Use speech, head movement, and simple gestures to make TonyPi expressive and responsive.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1 - Guided Practice",
+      "entry": "Lesson02.ipynb"
+    }
+  ]
+}

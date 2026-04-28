@@ -1,0 +1,13 @@
+{
+  "id": "lesson07",
+  "title": "Lesson 7 - Object Tracking",
+  "description": "Continuously track a color target and turn body/head toward it.",
+  "summary": "Continuously track a color target and turn body/head toward it.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1 - Guided Practice",
+      "entry": "Lesson07.ipynb"
+    }
+  ]
+}

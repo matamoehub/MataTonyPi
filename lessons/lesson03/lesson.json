@@ -1,0 +1,13 @@
+{
+  "id": "lesson03",
+  "title": "Lesson 3 - Action Groups and Performances",
+  "description": "Use prebuilt action groups and speech to choreograph short performances.",
+  "summary": "Use prebuilt action groups and speech to choreograph short performances.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1 - Guided Practice",
+      "entry": "Lesson03.ipynb"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "lesson08",
+  "title": "Lesson 8 - Auto Shooting",
+  "description": "Combine vision and movement to approach a ball target and trigger a kick-style action.",
+  "summary": "Combine vision and movement to approach a ball target and trigger a kick-style action.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1 - Guided Practice",
+      "entry": "Lesson08.ipynb"
+    }
+  ]
+}
