@@ -1,0 +1,13 @@
+{
+  "id": "lesson06",
+  "title": "Lesson 6 - Target Position Recognition",
+  "description": "Use color detection coordinates to decide if a target is left, center, or right.",
+  "summary": "Use color detection coordinates to decide if a target is left, center, or right.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1 - Guided Practice",
+      "entry": "Lesson06.ipynb"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "lesson12",
+  "title": "Lesson 12 - Pickup and Intelligent Transport",
+  "description": "Combine detection, approach, pickup, carry, and place-down in one transport flow.",
+  "summary": "Combine detection, approach, pickup, carry, and place-down in one transport flow.",
+  "levels": [
+    {
+      "id": "level_1",
+      "title": "Level 1 - Guided Practice",
+      "entry": "Lesson12.ipynb"
+    }
+  ]
+}
