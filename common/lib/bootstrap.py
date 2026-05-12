@@ -7,6 +7,57 @@ from pathlib import Path
 import os
 import sys
 
+__version__ = "1.1"
+
+BROKEN_CYCLONE_URI = "file:///etc/cyclonedds/config.xml"
+
+_SESSION_CANDIDATES = [
+    Path(os.environ.get("STUDENT_SESSION_PATH", "/opt/robot/lessons/state/student_session.json")),
+    Path("/opt/robot/lessons/state/student_session.json"),
+    Path("/opt/robot/students/state/student_session.json"),
+]
+
+
+def _student_session_exists() -> bool:
+    seen: set[str] = set()
+    for p in _SESSION_CANDIDATES:
+        key = str(p)
+        if key in seen:
+            continue
+        seen.add(key)
+        try:
+            if p.exists():
+                return True
+        except Exception:
+            pass
+    return False
+
+
+def _missing_lib_error(lib_path: Path) -> RuntimeError:
+    if _student_session_exists():
+        msg = (
+            "\n"
+            "  Robot library files not found — the lesson bundle has not been applied yet.\n"
+            "\n"
+            "  You are logged in, but your lesson may still be loading.\n"
+            "  Please wait a moment then restart the notebook kernel and try again.\n"
+            "\n"
+            f"  (Expected library at: {lib_path})"
+        )
+    else:
+        msg = (
+            "\n"
+            "  Robot library files not found — please log in first.\n"
+            "\n"
+            "  To use this notebook:\n"
+            "  1. Open the robot web page (your teacher will give you the address)\n"
+            "  2. Enter your name and class code to log in\n"
+            "  3. Return to this notebook and restart the kernel\n"
+            "\n"
+            f"  (Expected library at: {lib_path})"
+        )
+    return RuntimeError(msg)
+
 
 def safe_start_dir() -> Path:
     try:
@@ -63,7 +114,6 @@ def resolve_common_lib(root: Path) -> Path:
     candidates.extend(
         [
             Path("/opt/robot/students/lessons_cache/common/lib"),
-            Path("/opt/robot/students/lesson_cache/common/lib"),
             root / "common" / "lib",
             Path("/opt/robot/common/lib"),
         ]
@@ -90,7 +140,6 @@ def resolve_lessons_lib(root: Path) -> Path:
         [
             root / "lessons" / "lib",
             Path("/opt/robot/students/lessons_cache/lessons/lib"),
-            Path("/opt/robot/students/lesson_cache/lessons/lib"),
             Path("/opt/robot/lessons/lib"),
         ]
     )
@@ -121,6 +170,10 @@ def bootstrap(verbose: bool = True) -> dict[str, str]:
         )
     common_lib = resolve_common_lib(root)
     lessons_lib = resolve_lessons_lib(root)
+
+    sim_mode = str(os.environ.get("MATA_BACKEND", "")).strip().lower() == "sim" or os.environ.get("MATA_SIM", "").strip() == "1"
+    if not sim_mode and not common_lib.exists():
+        raise _missing_lib_error(common_lib)
 
     for path in reversed([common_lib, lessons_lib]):
         path_s = str(path)
