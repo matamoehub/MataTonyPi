@@ -156,13 +156,14 @@ def broadcast(hosts: list[str], cue: str, payload: Any = None, port: int = DEFAU
     return [send(host=host, cue=cue, payload=payload, port=port, timeout=timeout) for host in hosts]
 
 
+_WAIT_DEFAULT_TIMEOUT = float(os.environ.get("MATA_SIGNAL_WAIT_TIMEOUT", "300"))
+
+
 def wait_for(cue: str, timeout: float | None = None) -> dict[str, Any]:
     queue = _CUES[str(cue)]
+    effective_timeout = float(timeout) if timeout is not None else _WAIT_DEFAULT_TIMEOUT
     try:
-        if timeout is None:
-            event = queue.get()
-        else:
-            event = queue.get(timeout=float(timeout))
+        event = queue.get(timeout=effective_timeout)
         return {"ok": True, "event": event}
     except Empty:
         return {"ok": False, "cue": str(cue), "note": "Timed out waiting for cue"}

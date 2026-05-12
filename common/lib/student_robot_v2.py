@@ -223,8 +223,11 @@ class VisionNamespace(_Namespace):
         return DetectionResult(found=True, label=str(name), x=int(obj["cx"]), y=int(obj["cy"]), area=int(obj["area"]), confidence=1.0, note=result.get("path", ""))
 
     def find_object(self, name: str) -> DetectionResult:
-        self._log("vision.find_object", name=str(name))
-        return DetectionResult(found=False, label=str(name), note="Object detection backend not implemented yet")
+        raise NotImplementedError(
+            "find_object() is not available on TonyPi. "
+            "Use find_color() to detect colours or find_face() to detect faces. "
+            "Call show_action_groups() to see available actions."
+        )
 
     def find_face(self) -> DetectionResult:
         self._prepare_face_capture()

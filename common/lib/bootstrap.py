@@ -28,8 +28,6 @@ def candidate_roots(start: Path) -> list[Path]:
     candidates.extend(
         [
             Path("/opt/robot/MataTonyPi"),
-            Path("/opt/robot/students/workspaces/Mata-T1/JC"),
-            Path("/workspaces/Mata-T1/JC"),
         ]
     )
 

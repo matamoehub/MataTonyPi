@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib
+import logging
 import os
 import re
 import shutil
@@ -14,6 +15,8 @@ import time
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable
+
+_log = logging.getLogger(__name__)
 
 
 DEFAULT_PIPER_VOICE = "amy"
@@ -156,8 +159,10 @@ def _import_any(module_names: Iterable[str]) -> Any:
         try:
             return importlib.import_module(module_name)
         except Exception as exc:
+            _log.debug("_import_any: could not import %r: %s", module_name, exc)
             last_error = exc
     if last_error is not None:
+        _log.warning("_import_any: all imports failed, last error: %s", last_error)
         raise last_error
     raise ImportError("No module names provided")
 
