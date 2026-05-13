@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+__version__ = "1.0.0"
+
 from dataclasses import asdict, dataclass
 import time
 from typing import Any
