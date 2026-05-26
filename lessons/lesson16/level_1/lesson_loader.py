@@ -14,10 +14,23 @@ def _find_repo_root(start: Path) -> Path:
     raise RuntimeError("Could not find MataTonyPi repo root from lesson16 loader")
 
 
+def _resolve_common_lib(root: Path) -> Path:
+    candidates = [
+        Path("/opt/robot/common/lib"),
+        Path("/opt/robot/students/lessons_cache/common/lib"),
+        Path("/opt/robot/students/lesson_cache/common/lib"),
+        root / "common" / "lib",
+    ]
+    for candidate in candidates:
+        if candidate.is_dir():
+            return candidate
+    return root / "common" / "lib"
+
+
 def setup(verbose: bool = False) -> dict[str, str]:
     start = Path.cwd()
     root = _find_repo_root(start)
-    common_lib = root / "common" / "lib"
+    common_lib = _resolve_common_lib(root)
     lessons_lib = root / "lessons" / "lib"
 
     for path in [str(lessons_lib), str(common_lib)]:
