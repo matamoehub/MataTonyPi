@@ -6,6 +6,7 @@ from __future__ import annotations
 import copy
 import os
 import tempfile
+import threading
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
@@ -139,6 +140,7 @@ class Vision:
         self.warmup_s = float(warmup_s)
         self.min_area = int(min_area)
         self._profiles: Dict[str, List[HSVRange]] = copy.deepcopy(DEFAULT_COLOR_PROFILES)
+        self._index_confirmed = False
 
     def _open_capture(self, index: int):
         cv2, _np = _require_runtime()
@@ -174,10 +176,18 @@ class Vision:
 
     def _capture_frame(self):
         cv2, _np = _require_runtime()
-        capture_index = self._discover_camera_index()
+        if not self._index_confirmed:
+            capture_index = self._discover_camera_index()
+            self._index_confirmed = True
+        else:
+            capture_index = self.camera_index
         cap = self._open_capture(capture_index)
         if not cap.isOpened():
-            raise RuntimeError(f"TonyPi camera failed to open on index {capture_index}")
+            cap.release()
+            self._index_confirmed = False
+            capture_index = self._discover_camera_index()
+            self._index_confirmed = True
+            cap = self._open_capture(capture_index)
         if self.warmup_s > 0:
             time.sleep(self.warmup_s)
 
@@ -270,7 +280,11 @@ class Vision:
         elif save_path:
             path = self._write_image(annotated, save_path=save_path)
 
-        return {"color": name, "found": bool(objects), "count": len(objects), "objects": objects, "path": path}
+        frame_h, frame_w = frame.shape[:2]
+        return {
+            "color": name, "found": bool(objects), "count": len(objects), "objects": objects, "path": path,
+            "width": int(frame_w), "height": int(frame_h), "center_x": int(frame_w // 2),
+        }
 
     def detect_faces(self, show: bool = True, save_path: Optional[str] = None, min_confidence: float = 0.5) -> Dict[str, Any]:
         cv2, _np = _require_runtime()
@@ -294,7 +308,7 @@ class Vision:
                 y = _clamp_pixel(bbox.ymin * h, h - 1)
                 bw = max(1, _clamp_pixel(bbox.width * w, w))
                 bh = max(1, _clamp_pixel(bbox.height * h, h))
-                face = {"index": idx, "x": x, "y": y, "w": bw, "h": bh, "cx": int(x + bw / 2), "cy": int(y + bh / 2), "score": float(detection.score[0])}
+                face = {"index": idx, "x": x, "y": y, "w": bw, "h": bh, "cx": int(x + bw / 2), "cy": int(y + bh / 2), "score": float(detection.score[0]) if getattr(detection, "score", None) else 0.0}
                 faces.append(face)
                 cv2.rectangle(annotated, (x, y), (x + bw, y + bh), (0, 255, 0), 2)
         except Exception as exc:
@@ -362,6 +376,7 @@ class Vision:
                         "index": idx,
                         "handedness": handedness_label,
                         "gesture": gesture,
+                        "game_move": gesture if gesture in ("rock", "paper", "scissors") else None,
                         "fingers": fingers,
                         "bbox": {
                             "x": min(xs),
@@ -387,7 +402,7 @@ class Vision:
             "hands": hands_found,
             "path": path,
             "note": note,
-            "game_moves": [hand["gesture"] for hand in hands_found if hand.get("gesture") in ("rock", "paper", "scissors")],
+            "game_moves": [h["game_move"] for h in hands_found if h.get("game_move")],
         }
 
     def find_tag(self, tag_id: int | None = None, show: bool = True, save_path: Optional[str] = None) -> Dict[str, Any]:
@@ -427,11 +442,18 @@ class Vision:
 
 
 _VISION: Vision | None = None
+_VISION_LOCK = threading.Lock()
 
 
 def get_vision() -> Vision:
     global _VISION
     env_value = os.environ.get("CAM_INDEX")
-    if _VISION is None or getattr(_VISION, "_camera_env_value", None) != env_value:
-        _VISION = Vision()
+    with _VISION_LOCK:
+        if _VISION is None or getattr(_VISION, "_camera_env_value", None) != env_value:
+            _VISION = Vision()
     return _VISION
+
+
+def install_opencv_capture_fallback() -> bool:
+    """TonyPi uses a vendor hardware camera; the OpenCV capture fallback is not applicable."""
+    return False

@@ -7,7 +7,7 @@ from pathlib import Path
 import os
 import sys
 
-__version__ = "1.2"
+__version__ = "1.3"
 
 BROKEN_CYCLONE_URI = "file:///etc/cyclonedds/config.xml"
 
@@ -113,9 +113,11 @@ def resolve_common_lib(root: Path) -> Path:
 
     candidates.extend(
         [
+            # /opt/robot/common/lib is maintained by startup_maintenance sync_common_lib
+            # and is always preferred over the raw bundle cache.
+            Path("/opt/robot/common/lib"),
             Path("/opt/robot/students/lessons_cache/common/lib"),
             root / "common" / "lib",
-            Path("/opt/robot/common/lib"),
         ]
     )
 
@@ -241,7 +243,10 @@ def setup_camera_fallback() -> dict:
     try:
         import vision_lib
 
-        installed = bool(vision_lib.install_opencv_capture_fallback())
+        fn = getattr(vision_lib, "install_opencv_capture_fallback", None)
+        if fn is None:
+            return {"OPS_WEB_CAMERA_FALLBACK": False}
+        installed = bool(fn())
         return {"OPS_WEB_CAMERA_FALLBACK": installed}
     except Exception as e:
         return {

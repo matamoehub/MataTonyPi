@@ -3,9 +3,11 @@
 
 from __future__ import annotations
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
+import builtins
 from dataclasses import asdict, dataclass
+import threading
 import time
 from typing import Any
 
@@ -517,8 +519,25 @@ class RobotV2:
         return self.pose.sit()
 
 
+_LOCK_KEY = "__mata_tonypi_bot_lock__"
+_SINGLETON_KEY = "__mata_tonypi_bot__"
+
+
+def _get_lock() -> threading.Lock:
+    lock = getattr(builtins, _LOCK_KEY, None)
+    if lock is None:
+        lock = threading.Lock()
+        setattr(builtins, _LOCK_KEY, lock)
+    return lock
+
+
 def bot(verbose: bool = True) -> RobotV2:
-    return RobotV2(verbose=verbose)
+    with _get_lock():
+        inst = getattr(builtins, _SINGLETON_KEY, None)
+        if inst is None:
+            inst = RobotV2(verbose=verbose)
+            setattr(builtins, _SINGLETON_KEY, inst)
+        return inst
 
 
 __all__ = ["DetectionResult", "RobotV2", "bot"]
