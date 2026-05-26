@@ -7,9 +7,19 @@ __version__ = "1.1.0"
 
 import builtins
 from dataclasses import asdict, dataclass
+import sys
 import threading
 import time
+import types
 from typing import Any
+
+# When this module is loaded via importlib exec_module() without being
+# registered in sys.modules first (e.g. inside a workspace shim), Python
+# 3.11+ dataclasses.py does sys.modules.get(cls.__module__).__dict__ and
+# gets None, raising AttributeError.  Pre-register a stub so @dataclass
+# can resolve the lookup.  The shim will overwrite the real names anyway.
+if __name__ not in sys.modules:
+    sys.modules[__name__] = types.ModuleType(__name__)
 
 import action_group_lib
 import controller_lib
