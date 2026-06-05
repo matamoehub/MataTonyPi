@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-__version__ = "1.3.0"
+__version__ = "1.4.0"
 
 import builtins
 from dataclasses import asdict, dataclass
@@ -29,40 +29,23 @@ import tonypi_support as support
 import tts_lib
 import vision_lib
 
-try:
-    import emotion_lib
-except Exception:
-    emotion_lib = None
+_lib_errors: dict[str, str] = {}
 
-try:
-    import battery_lib
-except Exception:
-    battery_lib = None
+def _try_import(name: str):
+    try:
+        import importlib
+        return importlib.import_module(name)
+    except Exception as exc:
+        _lib_errors[name] = str(exc)
+        return None
 
-try:
-    import sensor_lib
-except Exception:
-    sensor_lib = None
-
-try:
-    import yolo_lib
-except Exception:
-    yolo_lib = None
-
-try:
-    import navigation_lib
-except Exception:
-    navigation_lib = None
-
-try:
-    import patrol_lib
-except Exception:
-    patrol_lib = None
-
-try:
-    import games_lib
-except Exception:
-    games_lib = None
+emotion_lib    = _try_import("emotion_lib")
+battery_lib    = _try_import("battery_lib")
+sensor_lib     = _try_import("sensor_lib")
+yolo_lib       = _try_import("yolo_lib")
+navigation_lib = _try_import("navigation_lib")
+patrol_lib     = _try_import("patrol_lib")
+games_lib      = _try_import("games_lib")
 
 
 @dataclass
@@ -864,52 +847,228 @@ class RobotV2:
         return self._log("stop")
 
     def versions(self) -> dict[str, str]:
-        """Print and return version strings for every MataTonyPi library file."""
+        """Return dict of {library_name: version_string} for every MataTonyPi lib."""
         import importlib
-        libs = [
-            ("student_robot_v2", "student_robot_v2"),
-            ("vision_lib",       "vision_lib"),
-            ("tonypi_support",   "tonypi_support"),
-            ("action_group_lib", "action_group_lib"),
-            ("head_lib",         "head_lib"),
-            ("tts_lib",          "tts_lib"),
-            ("signal_lib",       "signal_lib"),
-            ("camera_lib",       "camera_lib"),
-            ("emotion_lib",      "emotion_lib"),
-            ("battery_lib",      "battery_lib"),
-            ("sensor_lib",       "sensor_lib"),
-            ("yolo_lib",         "yolo_lib"),
-            ("navigation_lib",   "navigation_lib"),
-            ("patrol_lib",       "patrol_lib"),
-            ("games_lib",        "games_lib"),
+        _LIBS = [
+            "student_robot_v2", "vision_lib", "tonypi_support",
+            "action_group_lib", "head_lib", "tts_lib", "signal_lib", "camera_lib",
+            "emotion_lib", "battery_lib", "sensor_lib", "yolo_lib",
+            "navigation_lib", "patrol_lib", "games_lib",
         ]
         result = {}
-        for display_name, module_name in libs:
+        for name in _LIBS:
             try:
-                mod = importlib.import_module(module_name)
-                ver = getattr(mod, "__version__", "—")
+                mod = importlib.import_module(name)
+                result[name] = getattr(mod, "__version__", "—")
             except Exception:
-                ver = "not installed"
-            result[display_name] = ver
-            print(f"  {display_name:<20} {ver}")
+                result[name] = "not installed"
         return result
 
+    def show_versions(self):
+        """Print a formatted table of all library versions with ✓/✗ status."""
+        W = 46
+        print("=" * W)
+        print("  MataTonyPi — Library Versions")
+        print("-" * W)
+        vers = self.versions()
+        for name, ver in vers.items():
+            ok = ver not in ("not installed",)
+            icon = "✓" if ok else "✗"
+            err = f"  ← {_lib_errors.get(name, '')}" if not ok else ""
+            print(f"  {icon}  {name:<22} {ver}{err}")
+        print("=" * W)
+
     def status(self):
+        """Print a human-readable status of every backend and return a dict."""
+        W = 46
+        print("=" * W)
+        print("  MataTonyPi — Status")
+        print(f"  student_robot_v2: {__version__}")
+        print("-" * W)
+
+        def _line(label, mod, key=None):
+            if mod is not None:
+                print(f"  ✓  {label:<18} ready")
+            else:
+                err = _lib_errors.get(key or label, "import failed")
+                print(f"  ✗  {label:<18} unavailable  ← {err}")
+
+        _line("vision_lib",    vision_lib,    "vision_lib")
+        _line("tts_lib",       tts_lib,       "tts_lib")
+        _line("emotion_lib",   emotion_lib,   "emotion_lib")
+        _line("battery_lib",   battery_lib,   "battery_lib")
+        _line("sensor_lib",    sensor_lib,    "sensor_lib")
+        _line("yolo_lib",      yolo_lib,      "yolo_lib")
+        _line("navigation_lib",navigation_lib,"navigation_lib")
+        _line("patrol_lib",    patrol_lib,    "patrol_lib")
+        _line("games_lib",     games_lib,     "games_lib")
+
+        yolo_ok = yolo_lib is not None and yolo_lib.is_available()
+        print(f"  {'✓' if yolo_ok else '✗'}  {'YOLO model':<18} {'ready (yolov8n)' if yolo_ok else 'not installed  ← pip install ultralytics'}")
+
+        vendor_ok = support.vendor_available()
+        ag_count = len(support.list_action_groups())
+        print(f"  {'✓' if vendor_ok else '✗'}  {'vendor TonyPi':<18} {'found' if vendor_ok else 'not found'}")
+        print(f"  {'✓' if ag_count else '✗'}  {'action groups':<18} {ag_count} found")
+
+        if _lib_errors:
+            print("-" * W)
+            print("  Load errors:")
+            for name in sorted(_lib_errors):
+                print(f"    {name}: {_lib_errors[name]}")
+        print("=" * W)
+
         return {
             "robot": "MataTonyPi",
+            "version": __version__,
             "backend": self._backend_name(),
             "vendor_root": str(support.resolve_vendor_root()),
-            "action_groups_found": len(support.list_action_groups()),
+            "action_groups_found": ag_count,
             "dance_action_groups": len(support.dance_action_groups()),
-            "yolo_available": yolo_lib is not None and yolo_lib.is_available(),
+            "yolo_available": yolo_ok,
             "battery_pct": self.battery.percentage(),
             "tof_distance_mm": self.sensors.distance(),
-            "namespaces": [
-                "anim", "head", "arms", "pose", "motion", "vision",
-                "pickup", "voice", "controller", "team",
-                "emotion", "battery", "sensors", "navigation", "patrol", "games",
-            ],
+            "lib_errors": dict(_lib_errors),
         }
+
+    def diagnose(self) -> dict:
+        """Full hardware diagnostic — run before class to confirm the robot is ready.
+
+        Tests:
+          1. head    — nod + center
+          2. camera  — capture frame + show in Jupyter
+          3. voice   — say "Ready"
+          4. buzzer  — two-tone confirmation beep
+          5. ToF     — read distance sensor
+          6. battery — read voltage
+          7. YOLO    — check ultralytics + model file
+          8. actions — confirm action groups are loaded
+
+        Prints a ✓/✗ pass/fail table. Returns dict of results.
+        """
+        import time as _time
+
+        results: dict = {}
+
+        def _pass(name, detail):
+            results[name] = {"ok": True, "detail": detail}
+
+        def _fail(name, detail):
+            results[name] = {"ok": False, "detail": detail}
+
+        W = 46
+        print("=" * W)
+        print("  ROBOT DIAGNOSTIC — MataTonyPi")
+        print(f"  student_robot_v2 {__version__}  |  vision_lib {getattr(vision_lib, '__version__', '?')}")
+        print(f"  backend: {self._backend_name()}")
+        print("-" * W)
+
+        # 1. Head servos
+        try:
+            self.head.nod()
+            _time.sleep(0.1)
+            self.head.center()
+            _pass("head", "nod + center OK")
+        except Exception as e:
+            _fail("head", str(e))
+
+        # 2. Camera
+        try:
+            vis = vision_lib.get_vision()
+            frame = vis._capture_frame()
+            h, w = frame.shape[:2]
+            vis.show_image(frame, title="Diagnostic — camera frame")
+            _pass("camera", f"{w}×{h} frame captured")
+        except Exception as e:
+            _fail("camera", str(e))
+
+        # 3. Voice
+        try:
+            self.say("Ready.", block=True)
+            _pass("voice", 'said "Ready."')
+        except Exception as e:
+            _fail("voice", str(e))
+
+        # 4. Buzzer
+        try:
+            board = support.get_board()
+            if board is None:
+                raise RuntimeError("Board unavailable")
+            board.set_buzzer(1000, 0.15, 0.05, 1)
+            _time.sleep(0.25)
+            board.set_buzzer(1200, 0.15, 0.05, 1)
+            _pass("buzzer", "two-tone beep")
+        except Exception as e:
+            _fail("buzzer", str(e))
+
+        # 5. ToF distance sensor
+        try:
+            if sensor_lib is None:
+                raise RuntimeError(_lib_errors.get("sensor_lib", "sensor_lib not loaded"))
+            dist = sensor_lib.get_distance()
+            if dist == -1:
+                _fail("ToF sensor", "no reading — sensor not initialised or not connected")
+            else:
+                _pass("ToF sensor", f"{dist} mm")
+        except Exception as e:
+            _fail("ToF sensor", str(e))
+
+        # 6. Battery
+        try:
+            if battery_lib is None:
+                raise RuntimeError(_lib_errors.get("battery_lib", "battery_lib not loaded"))
+            v = battery_lib.get_voltage()
+            pct = battery_lib.get_percentage()
+            if v < battery_lib.WARN_V:
+                _fail("battery", f"{v:.2f}V ({pct}%) — LOW, please charge")
+            else:
+                _pass("battery", f"{v:.2f}V ({pct}%)")
+        except Exception as e:
+            _fail("battery", str(e))
+
+        # 7. YOLO
+        try:
+            from ultralytics import YOLO as _YOLO  # noqa: F401
+            from pathlib import Path as _Path
+            model_paths = [
+                _Path("/opt/robot/models/yolov8n.pt"),
+                _Path.home() / ".config" / "Ultralytics" / "yolov8n.pt",
+            ]
+            found = next((p for p in model_paths if p.exists()), None)
+            if found:
+                _pass("YOLO", f"yolov8n.pt at {found}")
+            else:
+                _fail("YOLO", "ultralytics installed but yolov8n.pt not found — run: python3 -c \"from ultralytics import YOLO; YOLO('yolov8n.pt')\"")
+        except ImportError:
+            _fail("YOLO", "not installed — run: pip install ultralytics")
+        except Exception as e:
+            _fail("YOLO", str(e))
+
+        # 8. Action groups
+        try:
+            ag = support.list_action_groups()
+            if not ag:
+                _fail("action groups", "none found — check vendor TonyPi install")
+            else:
+                _pass("action groups", f"{len(ag)} loaded")
+        except Exception as e:
+            _fail("action groups", str(e))
+
+        # Summary
+        print("-" * W)
+        for name, r in results.items():
+            icon = "✓" if r["ok"] else "✗"
+            print(f"  {icon}  {name:<14}  {r['detail']}")
+        print("-" * W)
+        passed = sum(1 for r in results.values() if r["ok"])
+        total = len(results)
+        if passed == total:
+            print(f"  RESULT:  {passed}/{total} — READY FOR CLASS ✓")
+        else:
+            failed = [n for n, r in results.items() if not r["ok"]]
+            print(f"  RESULT:  {passed}/{total} — CHECK: {', '.join(failed)}")
+        print("=" * W)
+        return results
 
     def home(self):
         self.head.center()
