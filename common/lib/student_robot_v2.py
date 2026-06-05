@@ -488,12 +488,19 @@ class PickupNamespace(_Namespace):
 
     def find(self, name: str) -> DetectionResult:
         """Look for an object before picking up.
-        Captures a frame, runs detection, and shows the annotated image in Jupyter.
+        Shows a raw snapshot first ("here's what I can see"), then runs
+        detection and shows an annotated frame with boxes around any matches.
         Uses colour detection for red/green/blue/yellow, YOLOv8n for everything else.
         Returns a DetectionResult so you can check result.found before acting."""
         target = str(name).strip().lower()
+        vis = vision_lib.get_vision()
+
+        # Show raw snapshot first so the student can see exactly what the robot sees
+        print(f"[pickup.find] Looking for: {name}")
+        vis.snapshot(show=True)
+
         if target in self._COLOUR_NAMES:
-            result = vision_lib.get_vision().find_color(target, show=True)
+            result = vis.find_color(target, show=True)
             objects = result.get("objects", [])
             self._log("pickup.find", name=target, method="colour")
             if not objects:
