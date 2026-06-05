@@ -863,6 +863,37 @@ class RobotV2:
         support.stop_actions()
         return self._log("stop")
 
+    def versions(self) -> dict[str, str]:
+        """Print and return version strings for every MataTonyPi library file."""
+        import importlib
+        libs = [
+            ("student_robot_v2", "student_robot_v2"),
+            ("vision_lib",       "vision_lib"),
+            ("tonypi_support",   "tonypi_support"),
+            ("action_group_lib", "action_group_lib"),
+            ("head_lib",         "head_lib"),
+            ("tts_lib",          "tts_lib"),
+            ("signal_lib",       "signal_lib"),
+            ("camera_lib",       "camera_lib"),
+            ("emotion_lib",      "emotion_lib"),
+            ("battery_lib",      "battery_lib"),
+            ("sensor_lib",       "sensor_lib"),
+            ("yolo_lib",         "yolo_lib"),
+            ("navigation_lib",   "navigation_lib"),
+            ("patrol_lib",       "patrol_lib"),
+            ("games_lib",        "games_lib"),
+        ]
+        result = {}
+        for display_name, module_name in libs:
+            try:
+                mod = importlib.import_module(module_name)
+                ver = getattr(mod, "__version__", "—")
+            except Exception:
+                ver = "not installed"
+            result[display_name] = ver
+            print(f"  {display_name:<20} {ver}")
+        return result
+
     def status(self):
         return {
             "robot": "MataTonyPi",
