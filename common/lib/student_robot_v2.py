@@ -847,7 +847,7 @@ class RobotV2:
         return self._log("stop")
 
     def versions(self) -> dict[str, str]:
-        """Return dict of {library_name: version_string} for every MataTonyPi lib."""
+        """Print a formatted table of all library versions with ✓/✗ status and return the dict."""
         import importlib
         _LIBS = [
             "student_robot_v2", "vision_lib", "tonypi_support",
@@ -862,21 +862,22 @@ class RobotV2:
                 result[name] = getattr(mod, "__version__", "—")
             except Exception:
                 result[name] = "not installed"
-        return result
 
-    def show_versions(self):
-        """Print a formatted table of all library versions with ✓/✗ status."""
         W = 46
         print("=" * W)
         print("  MataTonyPi — Library Versions")
         print("-" * W)
-        vers = self.versions()
-        for name, ver in vers.items():
-            ok = ver not in ("not installed",)
+        for name, ver in result.items():
+            ok = ver != "not installed"
             icon = "✓" if ok else "✗"
             err = f"  ← {_lib_errors.get(name, '')}" if not ok else ""
             print(f"  {icon}  {name:<22} {ver}{err}")
         print("=" * W)
+        return result
+
+    def show_versions(self):
+        """Alias for versions() — prints and returns the version table."""
+        return self.versions()
 
     def status(self):
         """Print a human-readable status of every backend and return a dict."""
