@@ -655,7 +655,7 @@ class Vision:
         # Handle hue wrap-around
         lh, uh = lower[0], upper[0]
         if lh < 0:
-            ranges = [((0, lower[1], lower[2]), (upper[1], upper[2], upper[2])),
+            ranges = [((0, lower[1], lower[2]), (upper[0], upper[1], upper[2])),
                       ((180 + lh, lower[1], lower[2]), (179, upper[1], upper[2]))]
         elif uh > 179:
             ranges = [((lh, lower[1], lower[2]), (179, upper[1], upper[2])),
