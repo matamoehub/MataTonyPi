@@ -813,6 +813,24 @@ class HelpNamespace:
         print("  myRobot.diagnose()  hardware diagnostic")
         print("=" * self._W)
 
+    def all(self):
+        """Print every command across all namespaces."""
+        self.vision()
+        self.pickup()
+        self.head()
+        self.motion()
+        self.arms()
+        self.pose()
+        self.anim()
+        self.emotion()
+        self.voice()
+        self.battery()
+        self.sensors()
+        self.navigation()
+        self.team()
+        self.games()
+        self.patrol()
+
     def _header(self, title: str):
         print("=" * self._W)
         print(f"  {title}")
