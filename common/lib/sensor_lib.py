@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Sensor library for MataTonyPi — ToF, IMU, buzzer."""
+__version__ = "1.0.0"
 from __future__ import annotations
 import threading
 import time

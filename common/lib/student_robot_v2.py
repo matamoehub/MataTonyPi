@@ -857,6 +857,9 @@ class RobotV2:
         ]
         result = {}
         for name in _LIBS:
+            if name == "student_robot_v2":
+                result[name] = __version__
+                continue
             try:
                 mod = importlib.import_module(name)
                 result[name] = getattr(mod, "__version__", "—")
@@ -1103,4 +1106,4 @@ def bot(verbose: bool = True) -> RobotV2:
         return inst
 
 
-__all__ = ["DetectionResult", "RobotV2", "bot"]
+__all__ = ["DetectionResult", "RobotV2", "bot", "__version__"]

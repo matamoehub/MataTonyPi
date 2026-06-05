@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Emotion expression library for MataTonyPi."""
+__version__ = "1.0.0"
 from __future__ import annotations
 import threading
 import time

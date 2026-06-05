@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Games library for MataTonyPi — Simon Says."""
+__version__ = "1.0.0"
 from __future__ import annotations
 import random
 import threading

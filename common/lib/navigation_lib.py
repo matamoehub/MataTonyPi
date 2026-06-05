@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Navigation library for MataTonyPi."""
+__version__ = "1.0.0"
 from __future__ import annotations
 import copy
 import threading
