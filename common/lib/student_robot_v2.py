@@ -516,6 +516,39 @@ class PickupNamespace(_Namespace):
     def grab(self):
         return self._run_action("pickup.grab", [("grab",), ("pickup",)])
 
+    def lift_to_chest(self) -> dict:
+        """Pick up from the floor and hold at chest height instead of raising above head.
+
+        Runs the move_up action group to grab the object, then immediately
+        moves the arm servos to a comfortable chest-carry position.
+
+        Servo positions (tunable via keyword args in future):
+          Shoulder pulse ~600 = arms raised to chest level
+          Elbow pulse    ~380 = elbows bent forward to cradle the object
+        """
+        import time as _time
+        # Step 1 — run the floor pickup sequence
+        result = self._owner._wrap_call("pickup.lift_to_chest", support.run_action, name="move_up", times=1)
+
+        # Step 2 — immediately re-position arms to chest carry height
+        # move_up finishes with arms raised above head; we pull them back down to chest
+        _time.sleep(0.3)
+        board = support.get_board()
+        if board is not None:
+            try:
+                board.bus_servo_set_position(600, [
+                    [7,  600],   # left shoulder  — chest level
+                    [6,  380],   # left elbow     — bent forward to hold object
+                    [15, 600],   # right shoulder — chest level
+                    [14, 380],   # right elbow    — bent forward to hold object
+                ])
+            except Exception as exc:
+                result["chest_carry_note"] = str(exc)
+        else:
+            result["chest_carry_note"] = "board unavailable — servo adjustment skipped"
+
+        return result
+
     def carry(self):
         return self._run_action("pickup.carry", [("carry",), ("transport",)])
 
