@@ -465,6 +465,16 @@ class VisionNamespace(_Namespace):
         """Load camera calibration npz file for angular + lateral measurements."""
         return vision_lib.get_vision().load_calibration(path=path)
 
+    def estimate_distance(self, pixel_width: float, object_real_width_cm: float) -> float:
+        """Estimate forward distance to an object in cm using its pixel width and known real size.
+        Works without calibration (uses FOV estimate as fallback).
+        Example: myRobot.vision.estimate_distance(result.w, 4.5) for a 4.5cm wide block."""
+        depth = vision_lib.get_vision().estimate_depth_cm(
+            pixel_width=float(pixel_width),
+            object_real_width_cm=float(object_real_width_cm)
+        )
+        return depth if depth is not None else -1.0
+
 
 class PickupNamespace(_Namespace):
     _COLOUR_NAMES = {"red", "green", "blue", "yellow", "r", "g", "b", "y"}

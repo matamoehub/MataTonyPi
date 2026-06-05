@@ -628,6 +628,32 @@ class Vision:
         lateral_cm = (float(pixel_cx) - cx) / fx * depth_cm
         return round(lateral_cm, 1)
 
+    def estimate_depth_cm(self, pixel_width: float, object_real_width_cm: float) -> Optional[float]:
+        """Estimate forward distance (depth) to an object in cm.
+
+        Uses the pinhole camera model:  depth = fx * real_width / pixel_width
+
+        Works without a calibration file — falls back to a 60° FOV estimate.
+        The more accurate the camera calibration and real object size, the better.
+
+        Args:
+            pixel_width:          Width of the object bounding box in pixels.
+            object_real_width_cm: Real-world width of the object in cm.
+                                  e.g. 4.5 for a small block, 6.5 for a football.
+
+        Returns depth in cm, or None if pixel_width is zero.
+        """
+        import math as _math
+        if pixel_width <= 0:
+            return None
+        if self._ensure_calibration() and self._cal_K is not None:
+            fx = float(self._cal_K[0, 0])
+        else:
+            # Fallback: estimate fx from a ~60° horizontal FOV
+            fx = self.width / (2 * _math.tan(_math.radians(30)))
+        depth_cm = fx * float(object_real_width_cm) / float(pixel_width)
+        return round(depth_cm, 1)
+
     def calibrate_color(self, color: str, box_size: int = 80, hue_pad: int = 12,
                         sat_pad: int = 70, val_pad: int = 70,
                         show: bool = True, save_path=None, persist: bool = True) -> Dict[str, Any]:
