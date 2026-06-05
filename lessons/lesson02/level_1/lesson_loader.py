@@ -59,15 +59,14 @@ def _find_repo_root(start: Path) -> Path:
 
 def _resolve_common_lib(root: Path) -> Path:
     candidates = [
+        Path("/opt/robot/MataTonyPi/common/lib"),
         Path("/opt/robot/common/lib"),
-        Path("/opt/robot/students/lessons_cache/common/lib"),
-        Path("/opt/robot/students/lesson_cache/common/lib"),
         root / "common" / "lib",
     ]
     for candidate in candidates:
         if candidate.is_dir():
             return candidate
-    raise FileNotFoundError("Could not find common/lib")
+    raise FileNotFoundError("Could not find MataTonyPi common/lib")
 
 
 def setup(verbose: bool = True):

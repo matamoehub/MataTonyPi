@@ -113,10 +113,11 @@ def resolve_common_lib(root: Path) -> Path:
 
     candidates.extend(
         [
-            # /opt/robot/common/lib is maintained by startup_maintenance sync_common_lib
-            # and is always preferred over the raw bundle cache.
+            # Prefer the live repo checkout — always up to date, never stale.
+            Path("/opt/robot/MataTonyPi/common/lib"),
+            # Synced copy maintained by startup_maintenance sync_common_lib.
             Path("/opt/robot/common/lib"),
-            Path("/opt/robot/students/lessons_cache/common/lib"),
+            # Repo-relative fallback for dev/local use.
             root / "common" / "lib",
         ]
     )
@@ -140,8 +141,8 @@ def resolve_lessons_lib(root: Path) -> Path:
 
     candidates.extend(
         [
+            Path("/opt/robot/MataTonyPi/lessons/lib"),
             root / "lessons" / "lib",
-            Path("/opt/robot/students/lessons_cache/lessons/lib"),
             Path("/opt/robot/lessons/lib"),
         ]
     )
