@@ -100,11 +100,6 @@ try:
 except Exception:
     PatrolLog = None
 
-try:
-    from Functions import AIBrain
-except Exception:
-    AIBrain = None
-
 # Start battery monitoring at module level
 if BatteryGuard is not None:
     try:
@@ -132,7 +127,6 @@ FUNCTIONS = {
     16: SimonSays,
     17: TagNav,
     18: PatrolLog,
-    # AIBrain is a background service; load via loadFunc(19) if extended
 }
 
 _current_func_id = None

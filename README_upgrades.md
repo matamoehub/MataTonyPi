@@ -1,5 +1,9 @@
 # TonyPi Upgrade Modules — Functions IDs 13–18
 
+> **AIBrain (Gemini Live) has been removed** — it required a paid Google Gemini API key and `google-genai` SDK. All other modules below need no paid external API except optional Anthropic Claude usage in SceneDescribe and PatrolLog.
+
+
+
 This document covers the eight new function modules added to the TonyPi platform. All modules reside in `Functions/` and implement the standard `init / start / stop / exit / run(img)` interface so they integrate seamlessly with `Running.py`.
 
 ---
@@ -7,15 +11,14 @@ This document covers the eight new function modules added to the TonyPi platform
 ## Install dependencies
 
 ```bash
-pip3 install anthropic google-genai mediapipe apriltag
+pip3 install anthropic mediapipe apriltag
 ```
 
 Environment variables (set in your shell or systemd unit):
 
 | Variable | Used By | Purpose |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | SceneDescribe, PatrolLog | Anthropic Claude API key |
-| `GEMINI_API_KEY` | AIBrain | Google Gemini Live API key |
+| `ANTHROPIC_API_KEY` | SceneDescribe, PatrolLog | Anthropic Claude API key (optional — falls back gracefully if absent) |
 
 ---
 
@@ -81,14 +84,3 @@ PatrolLog combines line-following (black tape on the floor) with obstacle loggin
 
 **Hardware required:** Camera, black tape on floor, VL53L0X ToF sensor, espeak-ng (optional TTS).
 
----
-
-## Background service — AIBrain (`Functions/AIBrain.py`)
-
-AIBrain connects to the Gemini 2.0 Flash Live API and gives TonyPi a conversational AI brain. Every two seconds it sends the current camera frame as an inline image. The model can respond with text (printed to console) or tool calls that are dispatched to physical robot actions: walk, turn, express emotions, wave, look in a direction, play buzzer patterns, trigger a scene description, or query the battery level. The session runs in a dedicated daemon thread using `asyncio.run()`. Stop it with `AIBrain.stop()`.
-
-**Trigger:** Load via function ID (extend `Running.FUNCTIONS` to assign an ID if desired), or call `AIBrain.start()` directly at startup.
-
-**Environment variables:** `GEMINI_API_KEY`
-
-**Hardware required:** Camera, all standard servos and buzzer. `google-genai` SDK (`pip3 install google-genai`).
