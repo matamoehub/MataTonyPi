@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 import builtins
 from dataclasses import asdict, dataclass
@@ -28,6 +28,41 @@ import signal_lib
 import tonypi_support as support
 import tts_lib
 import vision_lib
+
+try:
+    import emotion_lib
+except Exception:
+    emotion_lib = None
+
+try:
+    import battery_lib
+except Exception:
+    battery_lib = None
+
+try:
+    import sensor_lib
+except Exception:
+    sensor_lib = None
+
+try:
+    import yolo_lib
+except Exception:
+    yolo_lib = None
+
+try:
+    import navigation_lib
+except Exception:
+    navigation_lib = None
+
+try:
+    import patrol_lib
+except Exception:
+    patrol_lib = None
+
+try:
+    import games_lib
+except Exception:
+    games_lib = None
 
 
 @dataclass
@@ -237,11 +272,18 @@ class VisionNamespace(_Namespace):
         return DetectionResult(found=True, label=str(name), x=int(obj["cx"]), y=int(obj["cy"]), area=int(obj["area"]), confidence=1.0, note=result.get("path", ""))
 
     def find_object(self, name: str) -> DetectionResult:
-        raise NotImplementedError(
-            "find_object() is not available on TonyPi. "
-            "Use find_color() to detect colours or find_face() to detect faces. "
-            "Call show_action_groups() to see available actions."
-        )
+        """Find a specific object by class name using YOLOv8n."""
+        if yolo_lib is None or not yolo_lib.is_available():
+            return DetectionResult(found=False, label=str(name),
+                                   note="YOLOv8n not available — pip install ultralytics")
+        frame = vision_lib.get_vision()._capture_frame()
+        det = yolo_lib.find_class(frame, str(name))
+        self._log("vision.find_object", name=str(name))
+        if det is None:
+            return DetectionResult(found=False, label=str(name), note="Not detected")
+        return DetectionResult(found=True, label=det["label"],
+                               x=det["cx"], y=det["cy"], area=det["area"],
+                               confidence=det["confidence"])
 
     def find_face(self) -> DetectionResult:
         self._prepare_face_capture()
@@ -264,7 +306,10 @@ class VisionNamespace(_Namespace):
         if not tags:
             return DetectionResult(found=False, label=f"tag:{int(tag_id)}", note="No matching tag found")
         tag = tags[0]
-        return DetectionResult(found=True, label=f"tag:{int(tag_id)}", x=int(tag["cx"]), y=int(tag["cy"]), area=0, confidence=1.0, note=result.get("path", ""))
+        detection_result = DetectionResult(found=True, label=f"tag:{int(tag_id)}", x=int(tag["cx"]), y=int(tag["cy"]), area=0, confidence=1.0, note=result.get("path", ""))
+        if navigation_lib is not None:
+            navigation_lib.update_tag_map(int(tag_id), int(tag["cx"]), int(tag["cy"]), 0.0)
+        return detection_result
 
     def recognize_hands(self, show: bool = True):
         return vision_lib.get_vision().recognize_hands(show=show)
@@ -296,6 +341,72 @@ class VisionNamespace(_Namespace):
             "label": str(name),
             "note": "TonyPi scan_for currently supports face or colors: red, green, blue, yellow",
         }
+
+    def detect_objects(self, confidence: float = 0.45) -> list:
+        """Detect all objects in frame using YOLOv8n. Returns list of dicts."""
+        if yolo_lib is None or not yolo_lib.is_available():
+            self._log("vision.detect_objects")
+            return []
+        frame = vision_lib.get_vision()._capture_frame()
+        return yolo_lib.detect(frame, confidence=float(confidence))
+
+    def find_faces(self) -> list:
+        """Detect ALL faces (not just one). Returns list of DetectionResult."""
+        self._prepare_face_capture()
+        result = vision_lib.get_vision().find_face(show=True)
+        faces = result.get("faces", [])
+        self._log("vision.find_faces", count=len(faces))
+        return [
+            DetectionResult(found=True, label="face",
+                            x=int(f["cx"]), y=int(f["cy"]),
+                            area=int(f["w"] * f["h"]),
+                            confidence=float(f.get("score", 1.0)))
+            for f in faces
+        ]
+
+    def describe(self) -> str:
+        """Describe the scene using Claude API. Returns description string."""
+        import os, base64, urllib.request, json
+        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            return "I can't see clearly right now — ANTHROPIC_API_KEY not set"
+        self._log("vision.describe")
+        try:
+            import cv2
+            frame = vision_lib.get_vision()._capture_frame()
+            ok, buf = cv2.imencode(".jpg", frame)
+            if not ok:
+                return "I can't see clearly right now"
+            b64 = base64.b64encode(buf.tobytes()).decode()
+            payload = {
+                "model": "claude-opus-4-5",
+                "max_tokens": 200,
+                "system": ("You are the vision system of a small humanoid robot called TonyPi. "
+                           "Describe what you see in 1-2 short sentences, conversationally."),
+                "messages": [{"role": "user", "content": [
+                    {"type": "image", "source": {"type": "base64",
+                     "media_type": "image/jpeg", "data": b64}},
+                    {"type": "text", "text": "What do you see?"}
+                ]}],
+            }
+            req = urllib.request.Request(
+                "https://api.anthropic.com/v1/messages",
+                data=json.dumps(payload).encode(),
+                headers={"x-api-key": api_key, "anthropic-version": "2023-06-01",
+                         "content-type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                return json.loads(resp.read())["content"][0]["text"]
+        except Exception as e:
+            return "I can't see clearly right now"
+
+    def object_classes(self) -> list:
+        """List all 80 COCO object classes YOLOv8n can detect."""
+        return yolo_lib.class_names() if yolo_lib else []
+
+    def yolo_available(self) -> bool:
+        return yolo_lib is not None and yolo_lib.is_available()
 
 
 class PickupNamespace(_Namespace):
@@ -425,6 +536,135 @@ class TeamNamespace(_Namespace):
         return signal_lib.cue_history()
 
 
+class EmotionNamespace(_Namespace):
+    def express(self, emotion: str):
+        if emotion_lib is None:
+            return self._log("emotion.express", emotion=emotion)
+        return self._owner._wrap_call("emotion.express", emotion_lib.express, emotion=str(emotion))
+
+    def happy(self):    return self.express("happy")
+    def sad(self):      return self.express("sad")
+    def excited(self):  return self.express("excited")
+    def confused(self): return self.express("confused")
+    def greet(self):    return self.express("greet")
+
+    def is_busy(self) -> bool:
+        return emotion_lib.is_busy() if emotion_lib else False
+
+    def available(self) -> list:
+        return emotion_lib.available() if emotion_lib else []
+
+
+class BatteryNamespace(_Namespace):
+    def voltage(self) -> float:
+        return battery_lib.get_voltage() if battery_lib else 0.0
+
+    def percentage(self) -> int:
+        return battery_lib.get_percentage() if battery_lib else 0
+
+    def is_critical(self) -> bool:
+        return battery_lib.is_critical() if battery_lib else False
+
+    def is_low(self) -> bool:
+        return battery_lib.is_low() if battery_lib else False
+
+    def status(self) -> dict:
+        if battery_lib is None:
+            return self._log("battery.status")
+        return {"voltage": self.voltage(), "percentage": self.percentage(),
+                "is_low": self.is_low(), "is_critical": self.is_critical()}
+
+
+class SensorsNamespace(_Namespace):
+    def distance(self) -> int:
+        """ToF distance in mm. Returns -1 if unavailable."""
+        return sensor_lib.get_distance() if sensor_lib else -1
+
+    def imu(self) -> dict:
+        if sensor_lib is None:
+            return self._log("sensors.imu")
+        return sensor_lib.get_imu()
+
+    def buzz(self, freq_hz: int, on_secs: float = 0.1, off_secs: float = 0.05, repeat: int = 1):
+        if sensor_lib is None:
+            return self._log("sensors.buzz", freq_hz=freq_hz)
+        return sensor_lib.buzz(freq_hz=int(freq_hz), on_secs=float(on_secs),
+                               off_secs=float(off_secs), repeat=int(repeat))
+
+    def buzz_pattern(self, pattern: str):
+        if sensor_lib is None:
+            return self._log("sensors.buzz_pattern", pattern=pattern)
+        return sensor_lib.buzz_pattern(str(pattern))
+
+    def init_distance_sensor(self) -> bool:
+        if sensor_lib is None:
+            return False
+        return sensor_lib.init_tof()
+
+
+class NavigationNamespace(_Namespace):
+    def go_to_tag(self, tag_id: int, timeout: float = 10.0):
+        if navigation_lib is None:
+            return self._log("navigation.go_to_tag", tag_id=tag_id)
+        return navigation_lib.navigate_to_tag(int(tag_id), timeout=float(timeout))
+
+    def stop(self):
+        if navigation_lib:
+            navigation_lib.stop_navigation()
+            navigation_lib.stop_follow()
+        return self._log("navigation.stop")
+
+    def follow_person(self):
+        if navigation_lib is None:
+            return self._log("navigation.follow_person")
+        return self._owner._wrap_call("navigation.follow_person", navigation_lib.follow_person)
+
+    def get_tag_map(self) -> dict:
+        return navigation_lib.get_tag_map() if navigation_lib else {}
+
+    def update_tag(self, tag_id: int, cx: int, cy: int, area: float):
+        """Called internally by vision.find_tag to keep the map fresh."""
+        if navigation_lib:
+            navigation_lib.update_tag_map(int(tag_id), int(cx), int(cy), float(area))
+
+
+class PatrolNamespace(_Namespace):
+    def start(self):
+        if patrol_lib is None:
+            return self._log("patrol.start")
+        return patrol_lib.start()
+
+    def stop(self) -> dict:
+        if patrol_lib is None:
+            return self._log("patrol.stop")
+        return patrol_lib.stop()
+
+    def log(self) -> list:
+        return patrol_lib.get_log() if patrol_lib else []
+
+    def update_frame(self, frame):
+        if patrol_lib:
+            patrol_lib.update_frame(frame)
+
+
+class GamesNamespace(_Namespace):
+    def simon_says(self, difficulty: int = 2):
+        if games_lib is None:
+            return self._log("games.simon_says")
+        games_lib.set_difficulty(int(difficulty))
+        return games_lib.start_game()
+
+    def stop_game(self):
+        return games_lib.stop_game() if games_lib else self._log("games.stop")
+
+    def is_game_running(self) -> bool:
+        return games_lib.is_running() if games_lib else False
+
+    def set_difficulty(self, level: int):
+        if games_lib:
+            games_lib.set_difficulty(int(level))
+
+
 class RobotV2:
     def __init__(self, verbose: bool = True):
         self.verbose = bool(verbose)
@@ -439,6 +679,17 @@ class RobotV2:
         self.controller = ControllerNamespace(self)
         self.team = TeamNamespace(self)
         self.tts = self.voice
+        self.emotion    = EmotionNamespace(self)
+        self.battery    = BatteryNamespace(self)
+        self.sensors    = SensorsNamespace(self)
+        self.navigation = NavigationNamespace(self)
+        self.patrol     = PatrolNamespace(self)
+        self.games      = GamesNamespace(self)
+        if battery_lib is not None:
+            try:
+                battery_lib.start_monitoring()
+            except Exception:
+                pass
 
     def _backend_name(self) -> str:
         return "tonypi" if support.vendor_available() else "stub"
@@ -515,7 +766,14 @@ class RobotV2:
             "vendor_root": str(support.resolve_vendor_root()),
             "action_groups_found": len(support.list_action_groups()),
             "dance_action_groups": len(support.dance_action_groups()),
-            "namespaces": ["anim", "head", "arms", "pose", "motion", "vision", "pickup", "voice", "controller", "team"],
+            "yolo_available": yolo_lib is not None and yolo_lib.is_available(),
+            "battery_pct": self.battery.percentage(),
+            "tof_distance_mm": self.sensors.distance(),
+            "namespaces": [
+                "anim", "head", "arms", "pose", "motion", "vision",
+                "pickup", "voice", "controller", "team",
+                "emotion", "battery", "sensors", "navigation", "patrol", "games",
+            ],
         }
 
     def home(self):
