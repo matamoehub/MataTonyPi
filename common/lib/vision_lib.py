@@ -3,6 +3,8 @@ from __future__ import annotations
 
 """TonyPi notebook-friendly camera and vision helper."""
 
+__version__ = "1.4.0"
+
 import copy
 import os
 import tempfile
@@ -114,11 +116,11 @@ def _classify_hand_gesture(landmarks, handedness: str) -> Tuple[str, Dict[str, b
     }
 
     if all(fingers.values()):
-        return "paper", fingers
+        return "open_palm", fingers
     if not any(fingers.values()):
-        return "rock", fingers
+        return "fist", fingers
     if fingers["index"] and fingers["middle"] and not fingers["ring"] and not fingers["pinky"]:
-        return "scissors", fingers
+        return "peace", fingers
     if fingers["index"] and not fingers["middle"] and not fingers["ring"] and not fingers["pinky"]:
         return "point", fingers
     if fingers["thumb"] and not fingers["index"] and not fingers["middle"] and not fingers["ring"] and not fingers["pinky"]:
@@ -126,8 +128,18 @@ def _classify_hand_gesture(landmarks, handedness: str) -> Tuple[str, Dict[str, b
             return "thumbs_up", fingers
         return "thumb_out", fingers
     if fingers["index"] and fingers["pinky"] and not fingers["middle"] and not fingers["ring"]:
-        return "rock_sign", fingers
+        return "rock", fingers
     return "unknown", fingers
+
+
+def _gesture_to_game_move(gesture: str):
+    mapping = {
+        "fist": "rock",
+        "open_palm": "paper",
+        "peace": "scissors",
+        "rock": "rock",     # index+pinky = rock sign
+    }
+    return mapping.get(str(gesture).strip().lower())
 
 
 class Vision:
@@ -141,6 +153,13 @@ class Vision:
         self.min_area = int(min_area)
         self._profiles: Dict[str, List[HSVRange]] = copy.deepcopy(DEFAULT_COLOR_PROFILES)
         self._index_confirmed = False
+        self.skip_frames = int(os.environ.get("CAM_SKIP_FRAMES", 3))
+        self._cal_K = None
+        self._cal_D = None
+        self._cal_dim = None
+        self._cal_map1 = None
+        self._cal_map2 = None
+        self._yolo_model = None
 
     def _open_capture(self, index: int):
         cv2, _np = _require_runtime()
@@ -190,14 +209,13 @@ class Vision:
             cap = self._open_capture(capture_index)
         if self.warmup_s > 0:
             time.sleep(self.warmup_s)
-
-        frame = None
-        for _ in range(6):
-            ok, maybe = cap.read()
-            if ok and maybe is not None:
-                frame = maybe
+        # Drain stale V4L2 buffer frames — the first N reads after open
+        # return buffered-up old frames, not the current scene.
+        for _ in range(self.skip_frames):
+            cap.read()
+        ok, frame = cap.read()
         cap.release()
-        if frame is None:
+        if not ok or frame is None:
             raise RuntimeError("TonyPi camera opened, but no frame was available from OpenCV capture")
         return frame.copy()
 
@@ -272,6 +290,10 @@ class Vision:
             obj = {"x": int(x), "y": int(y), "w": int(w), "h": int(h), "cx": cx, "cy": cy, "area": area}
             objects.append(obj)
             cv2.rectangle(annotated, (obj["x"], obj["y"]), (obj["x"] + obj["w"], obj["y"] + obj["h"]), (0, 255, 255), 2)
+
+        objects.sort(key=lambda item: item["cx"])
+        for idx, item in enumerate(objects, start=1):
+            item["index"] = idx
 
         path = None
         if show:
@@ -376,7 +398,7 @@ class Vision:
                         "index": idx,
                         "handedness": handedness_label,
                         "gesture": gesture,
-                        "game_move": gesture if gesture in ("rock", "paper", "scissors") else None,
+                        "game_move": _gesture_to_game_move(gesture),
                         "fingers": fingers,
                         "bbox": {
                             "x": min(xs),
@@ -404,6 +426,350 @@ class Vision:
             "note": note,
             "game_moves": [h["game_move"] for h in hands_found if h.get("game_move")],
         }
+
+    def set_color_profile(self, color: str, lower_hsv, upper_hsv=None):
+        """Set a custom HSV colour profile. lower_hsv can be a (lower, upper) tuple or list of such pairs."""
+        name = _normalize_color_name(color)
+        if upper_hsv is None:
+            # Expect list of (lower, upper) pairs
+            ranges = []
+            for pair in lower_hsv:
+                ranges.append(_coerce_range(pair[0], pair[1]))
+        else:
+            ranges = [_coerce_range(lower_hsv, upper_hsv)]
+        self._profiles[name] = ranges
+        return {"color": name, "ranges": ranges}
+
+    def show_profiles(self):
+        """Print and return all colour profiles."""
+        for name in sorted(self._profiles):
+            print(f"{name}: {self._profiles[name]}")
+        return copy.deepcopy(self._profiles)
+
+    def target_position(self, color: str, target_x=None, deadzone: int = 50,
+                        show: bool = True, min_area=None) -> Dict[str, Any]:
+        """Find the largest colour object and return its direction from centre.
+        Returns: found, direction ("left"|"center"|"right"|"lost"), error (pixels), target_x, deadzone, object, result."""
+        result = self.find_color(color=color, show=show, min_area=min_area)
+        objects = result.get("objects", [])
+        centre_x = int(result.get("center_x", self.width // 2) if target_x is None else target_x)
+        threshold = abs(int(deadzone))
+
+        if not objects:
+            return {
+                "color": result.get("color", color),
+                "found": False,
+                "direction": "lost",
+                "error": None,
+                "target_x": centre_x,
+                "deadzone": threshold,
+                "object": None,
+                "result": result,
+            }
+
+        target = max(objects, key=lambda item: item["area"])
+        error = int(target["cx"] - centre_x)
+        if abs(error) <= threshold:
+            direction = "center"
+        elif error < 0:
+            direction = "left"
+        else:
+            direction = "right"
+
+        return {
+            "color": result.get("color", color),
+            "found": True,
+            "direction": direction,
+            "error": error,
+            "target_x": centre_x,
+            "deadzone": threshold,
+            "object": target,
+            "result": result,
+        }
+
+    def locate_object(self, color: str, target_x=None, deadzone: int = 50,
+                      show: bool = True, min_area=None,
+                      object_diameter_cm=None) -> Dict[str, Any]:
+        """Enhanced target_position — adds angle_x_deg, lateral_cm, normalised error.
+        direction: "left" | "center" | "right" | "lost"
+        error_norm: -1.0 (far left) to +1.0 (far right), resolution-independent.
+        angle_x_deg: positive = object is to the RIGHT of centre.
+        lateral_cm: estimated lateral cm if object_diameter_cm provided and calibration loaded."""
+        result = self.find_color(color=color, show=show, min_area=min_area)
+        objects = result.get("objects", [])
+        frame_w = result.get("width", self.width) or self.width
+        centre_x = int(frame_w // 2 if target_x is None else target_x)
+        threshold = abs(int(deadzone))
+
+        if not objects:
+            return {
+                "color": result.get("color", color),
+                "found": False,
+                "direction": "lost",
+                "error": None,
+                "error_norm": None,
+                "angle_x_deg": None,
+                "lateral_cm": None,
+                "target_x": centre_x,
+                "deadzone": threshold,
+                "object": None,
+                "result": result,
+            }
+
+        target = max(objects, key=lambda item: item["area"])
+        error = int(target["cx"] - centre_x)
+        error_norm = round(error / max(1, frame_w / 2), 3)
+        angles = self.pixel_to_angle(target["cx"])
+        angle_x_deg = angles["angle_x_deg"]
+        lateral_cm = None
+        if object_diameter_cm is not None:
+            lateral_cm = self.estimate_lateral_cm(target["cx"], target.get("w", 0), object_diameter_cm)
+
+        if abs(error) <= threshold:
+            direction = "center"
+        elif error < 0:
+            direction = "left"
+        else:
+            direction = "right"
+
+        return {
+            "color": result.get("color", color),
+            "found": True,
+            "direction": direction,
+            "error": error,
+            "error_norm": error_norm,
+            "angle_x_deg": angle_x_deg,
+            "lateral_cm": lateral_cm,
+            "target_x": centre_x,
+            "deadzone": threshold,
+            "object": target,
+            "result": result,
+        }
+
+    _CALIBRATION_SEARCH_PATHS = [
+        "/opt/robot/calibration/camera_calibration.npz",
+    ]
+
+    def load_calibration(self, path=None) -> bool:
+        """Load camera calibration from npz file. Searches /opt/robot/calibration/ if path not given.
+        Returns True if loaded. Used by pixel_to_angle() and estimate_lateral_cm()."""
+        cv2, np = _require_runtime()
+        candidates = [Path(path)] if path else [
+            Path("/opt/robot/calibration/camera_calibration.npz"),
+            Path(__file__).resolve().parent.parent / "calibration" / "camera_calibration.npz",
+            Path.home() / "camera_calibration.npz",
+        ]
+        for p in candidates:
+            if not p.exists():
+                continue
+            try:
+                data = np.load(str(p))
+                # Try both key naming conventions
+                K = data.get("k_array", data.get("mtx_array", None))
+                D = data.get("d_array", data.get("dist_array", None))
+                if K is None or D is None:
+                    continue
+                D = D.flatten()
+                w, h = self.width, self.height
+                new_K, _ = cv2.getOptimalNewCameraMatrix(K, D, (w, h), 1, (w, h))
+                map1, map2 = cv2.initUndistortRectifyMap(K, D, None, new_K, (w, h), cv2.CV_16SC2)
+                self._cal_K = new_K
+                self._cal_D = D
+                self._cal_dim = (w, h)
+                self._cal_map1 = map1
+                self._cal_map2 = map2
+                print(f"[vision_lib] calibration loaded: {p.name}")
+                return True
+            except Exception as e:
+                print(f"[vision_lib] calibration load error ({p}): {e}")
+        return False
+
+    def _ensure_calibration(self) -> bool:
+        if self._cal_K is not None:
+            return True
+        return self.load_calibration()
+
+    def undistort_frame(self, frame):
+        """Undistort a frame using loaded camera calibration. Returns original frame if unavailable."""
+        if not self._ensure_calibration():
+            return frame
+        cv2, _np = _require_runtime()
+        return cv2.remap(frame, self._cal_map1, self._cal_map2, cv2.INTER_LINEAR)
+
+    def pixel_to_angle(self, pixel_x: float, pixel_y=None) -> Dict[str, float]:
+        """Convert pixel x (and optionally y) to angular offset from camera centre.
+        Returns {"angle_x_deg": float, "angle_y_deg": float}.
+        Positive angle_x = object is to the RIGHT of centre."""
+        import math as _math
+        if self._ensure_calibration() and self._cal_K is not None:
+            fx = float(self._cal_K[0, 0])
+            fy = float(self._cal_K[1, 1])
+            cx = float(self._cal_K[0, 2])
+            cy = float(self._cal_K[1, 2])
+        else:
+            fx = fy = self.width / (2 * _math.tan(_math.radians(30)))
+            cx = self.width / 2.0
+            cy = self.height / 2.0
+        angle_x = _math.degrees(_math.atan2(float(pixel_x) - cx, fx))
+        angle_y = _math.degrees(_math.atan2(float(pixel_y) - cy, fy)) if pixel_y is not None else 0.0
+        return {"angle_x_deg": round(angle_x, 2), "angle_y_deg": round(angle_y, 2)}
+
+    def estimate_lateral_cm(self, pixel_cx: float, pixel_width: float, object_diameter_cm: float = 6.5):
+        """Estimate lateral distance in cm from camera centre using object apparent width.
+        Requires camera calibration. Returns None if unavailable."""
+        if pixel_width <= 0:
+            return None
+        if not self._ensure_calibration() or self._cal_K is None:
+            return None
+        import math as _math
+        fx = float(self._cal_K[0, 0])
+        cx = float(self._cal_K[0, 2])
+        depth_cm = fx * float(object_diameter_cm) / float(pixel_width)
+        lateral_cm = (float(pixel_cx) - cx) / fx * depth_cm
+        return round(lateral_cm, 1)
+
+    def calibrate_color(self, color: str, box_size: int = 80, hue_pad: int = 12,
+                        sat_pad: int = 70, val_pad: int = 70,
+                        show: bool = True, save_path=None, persist: bool = True) -> Dict[str, Any]:
+        """Calibrate a colour profile by sampling the centre of the frame.
+        Point the camera at the target object so it fills the centre, then call this.
+        persist=True updates the profile in memory for immediate use."""
+        cv2, np = _require_runtime()
+        name = _normalize_color_name(color)
+        frame = self._capture_frame()
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        h, w = frame.shape[:2]
+        half = max(10, int(box_size) // 2)
+        cx, cy = w // 2, h // 2
+        x0, y0 = max(0, cx - half), max(0, cy - half)
+        x1, y1 = min(w, cx + half), min(h, cy + half)
+        roi = hsv[y0:y1, x0:x1]
+        if roi.size == 0:
+            raise RuntimeError("Calibration ROI was empty")
+
+        median = np.median(roi.reshape(-1, 3), axis=0)
+        mh, ms, mv = [int(round(v)) for v in median]
+        lower = (mh - int(hue_pad), max(0, ms - int(sat_pad)), max(0, mv - int(val_pad)))
+        upper = (mh + int(hue_pad), min(255, ms + int(sat_pad)), min(255, mv + int(val_pad)))
+
+        # Handle hue wrap-around
+        lh, uh = lower[0], upper[0]
+        if lh < 0:
+            ranges = [((0, lower[1], lower[2]), (upper[1], upper[2], upper[2])),
+                      ((180 + lh, lower[1], lower[2]), (179, upper[1], upper[2]))]
+        elif uh > 179:
+            ranges = [((lh, lower[1], lower[2]), (179, upper[1], upper[2])),
+                      ((0, lower[1], lower[2]), (uh - 180, upper[1], upper[2]))]
+        else:
+            ranges = [((max(0, lh), lower[1], lower[2]), (min(179, uh), upper[1], upper[2]))]
+
+        if persist:
+            self._profiles[name] = ranges
+
+        annotated = frame.copy()
+        cv2.rectangle(annotated, (x0, y0), (x1, y1), (255, 255, 255), 2)
+        cv2.putText(annotated, f"{name} HSV~{(mh, ms, mv)}", (10, 24),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
+        path = None
+        if show:
+            info = self.show_image(annotated, save_path=save_path, title=f"Calibrated {name}: {ranges}")
+            path = info["path"]
+        elif save_path:
+            path = self._write_image(annotated, save_path=save_path)
+
+        result = {"color": name, "sample_hsv": (mh, ms, mv), "ranges": ranges,
+                  "path": path, "persisted": bool(persist)}
+        print(result)
+        return result
+
+    def which_object(self, color: str, show: bool = True, save_path=None, min_area=None) -> int:
+        """Returns the left-to-right index (1-based) of the largest detected colour object.
+        Returns 0 if nothing found. Objects are numbered left to right in the frame."""
+        result = self.find_color(color=color, show=show, save_path=save_path, min_area=min_area)
+        objects = result.get("objects", [])
+        if not objects:
+            return 0
+        largest = max(objects, key=lambda item: item["area"])
+        idx = largest.get("index", 1)
+        print(f"{result.get('color', color)} object index: {idx}")
+        return int(idx)
+
+    def detect_pose(self, show: bool = True, save_path=None,
+                    min_detection_confidence: float = 0.5,
+                    min_tracking_confidence: float = 0.5) -> Dict[str, Any]:
+        """Detect full body pose using MediaPipe Pose.
+        Returns: found, label ("hands_up"|"t_pose"|"left_hand_up"|"right_hand_up"|"neutral"), landmarks dict."""
+        cv2, _np = _require_runtime()
+        mp = _require_mediapipe_runtime()
+        frame_bgr = self._capture_frame()
+        frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+        annotated = frame_bgr.copy()
+
+        with mp.solutions.pose.Pose(
+            static_image_mode=True,
+            min_detection_confidence=float(min_detection_confidence),
+            min_tracking_confidence=float(min_tracking_confidence),
+        ) as detector:
+            result = detector.process(frame_rgb)
+
+        pose_landmarks = getattr(result, "pose_landmarks", None)
+        pose_label = "none"
+        landmarks_out = {}
+
+        if pose_landmarks is not None:
+            mp.solutions.drawing_utils.draw_landmarks(
+                annotated, pose_landmarks, mp.solutions.pose.POSE_CONNECTIONS)
+            key_indices = {
+                "nose": 0, "left_shoulder": 11, "right_shoulder": 12,
+                "left_elbow": 13, "right_elbow": 14,
+                "left_wrist": 15, "right_wrist": 16,
+                "left_hip": 23, "right_hip": 24,
+            }
+            for name, idx in key_indices.items():
+                pt = pose_landmarks.landmark[idx]
+                landmarks_out[name] = {"x": float(pt.x), "y": float(pt.y),
+                                       "z": float(pt.z), "visibility": float(pt.visibility)}
+
+            # Classify pose
+            lm = pose_landmarks.landmark
+            left_shoulder, right_shoulder = lm[11], lm[12]
+            left_wrist, right_wrist = lm[15], lm[16]
+            left_elbow, right_elbow = lm[13], lm[14]
+            nose = lm[0]
+
+            wrists_above_shoulders = left_wrist.y < left_shoulder.y and right_wrist.y < right_shoulder.y
+            wrists_out_wide = (abs(left_wrist.y - left_shoulder.y) < 0.10 and
+                               abs(right_wrist.y - right_shoulder.y) < 0.10)
+            elbows_out_wide = (abs(left_elbow.y - left_shoulder.y) < 0.12 and
+                               abs(right_elbow.y - right_shoulder.y) < 0.12)
+
+            if wrists_above_shoulders:
+                pose_label = "hands_up"
+            elif wrists_out_wide and elbows_out_wide:
+                pose_label = "t_pose"
+            elif left_wrist.y < nose.y and right_wrist.y >= right_shoulder.y:
+                pose_label = "left_hand_up"
+            elif right_wrist.y < nose.y and left_wrist.y >= left_shoulder.y:
+                pose_label = "right_hand_up"
+            else:
+                pose_label = "neutral"
+
+            cv2.putText(annotated, f"pose: {pose_label}", (10, 24),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 255), 2)
+
+        path = None
+        if show:
+            info = self.show_image(annotated, save_path=save_path, title=f"Pose: {pose_label}")
+            path = info["path"]
+        elif save_path:
+            path = self._write_image(annotated, save_path=save_path)
+
+        return {"found": bool(pose_landmarks), "label": pose_label,
+                "landmarks": landmarks_out, "path": path}
+
+    def show_pose(self, **kwargs): return self.detect_pose(**kwargs)
+    def recognize_pose(self, **kwargs): return self.detect_pose(**kwargs)
+    def show_color(self, color: str, **kwargs): return self.find_color(color=color, **kwargs)
 
     def find_tag(self, tag_id: int | None = None, show: bool = True, save_path: Optional[str] = None) -> Dict[str, Any]:
         cv2, _np = _require_runtime()
@@ -457,3 +823,13 @@ def get_vision() -> Vision:
 def install_opencv_capture_fallback() -> bool:
     """TonyPi uses a vendor hardware camera; the OpenCV capture fallback is not applicable."""
     return False
+
+
+def target_position(*args, **kwargs): return get_vision().target_position(*args, **kwargs)
+def locate_object(*args, **kwargs): return get_vision().locate_object(*args, **kwargs)
+def detect_pose(*args, **kwargs): return get_vision().detect_pose(*args, **kwargs)
+def which_object(*args, **kwargs): return get_vision().which_object(*args, **kwargs)
+def calibrate_color(*args, **kwargs): return get_vision().calibrate_color(*args, **kwargs)
+def set_color_profile(*args, **kwargs): return get_vision().set_color_profile(*args, **kwargs)
+def show_profiles(): return get_vision().show_profiles()
+def load_calibration(*args, **kwargs): return get_vision().load_calibration(*args, **kwargs)

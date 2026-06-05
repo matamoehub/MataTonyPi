@@ -68,3 +68,43 @@ def scan():
     set_head(vertical=vertical, horizontal=horizontal - 300, duration_ms=260)
     sleep(0.18)
     return center()
+
+
+def wiggle(cycles: int = 2, amplitude: int = 200, duration_ms: int = 200):
+    """Friendly yaw wiggle left-right."""
+    _, horizontal = head_center()
+    for _ in range(int(cycles)):
+        set_head(horizontal=horizontal - int(amplitude), duration_ms=duration_ms)
+        sleep(duration_ms / 1000.0 + 0.05)
+        set_head(horizontal=horizontal + int(amplitude), duration_ms=duration_ms)
+        sleep(duration_ms / 1000.0 + 0.05)
+    return center()
+
+
+def tiny_wiggle(seconds: float = 2.0, amplitude: int = 90, duration_ms: int = 120):
+    """Very small continuous wiggle for given seconds."""
+    import time as _time
+    _, horizontal = head_center()
+    end = _time.time() + float(seconds)
+    while _time.time() < end:
+        set_head(horizontal=horizontal - int(amplitude), duration_ms=duration_ms)
+        sleep(duration_ms / 1000.0 + 0.02)
+        set_head(horizontal=horizontal + int(amplitude), duration_ms=duration_ms)
+        sleep(duration_ms / 1000.0 + 0.02)
+    return center()
+
+
+def glance_left(amplitude: int = 250, hold_s: float = 0.15):
+    """Quick look left then return to centre."""
+    _, horizontal = head_center()
+    set_head(horizontal=horizontal + int(amplitude), duration_ms=200)
+    sleep(float(hold_s))
+    return center()
+
+
+def glance_right(amplitude: int = 250, hold_s: float = 0.15):
+    """Quick look right then return to centre."""
+    _, horizontal = head_center()
+    set_head(horizontal=horizontal - int(amplitude), duration_ms=200)
+    sleep(float(hold_s))
+    return center()

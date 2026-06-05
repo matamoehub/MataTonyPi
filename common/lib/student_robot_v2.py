@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
 import builtins
 from dataclasses import asdict, dataclass
@@ -174,6 +174,18 @@ class HeadNamespace(_Namespace):
 
     def scan(self):
         return self._owner._wrap_call("head.scan", head_lib.scan)
+
+    def wiggle(self, cycles: int = 2):
+        return self._owner._wrap_call("head.wiggle", head_lib.wiggle, cycles=int(cycles))
+
+    def tiny_wiggle(self, seconds: float = 2.0):
+        return self._owner._wrap_call("head.tiny_wiggle", head_lib.tiny_wiggle, seconds=float(seconds))
+
+    def glance_left(self):
+        return self._owner._wrap_call("head.glance_left", head_lib.glance_left)
+
+    def glance_right(self):
+        return self._owner._wrap_call("head.glance_right", head_lib.glance_right)
 
 
 class ArmsNamespace(_Namespace):
@@ -434,6 +446,41 @@ class VisionNamespace(_Namespace):
 
     def yolo_available(self) -> bool:
         return yolo_lib is not None and yolo_lib.is_available()
+
+    def target_position(self, color: str, deadzone: int = 50):
+        """Find largest colour object; returns direction left/center/right/lost + pixel error."""
+        return vision_lib.get_vision().target_position(color=str(color), deadzone=int(deadzone), show=True)
+
+    def locate_object(self, color: str, deadzone: int = 50, object_diameter_cm=None):
+        """Like target_position but adds angle_x_deg, lateral_cm, normalised error."""
+        kwargs = {"color": str(color), "deadzone": int(deadzone), "show": True}
+        if object_diameter_cm is not None:
+            kwargs["object_diameter_cm"] = float(object_diameter_cm)
+        return vision_lib.get_vision().locate_object(**kwargs)
+
+    def detect_pose(self):
+        """Detect full body pose: hands_up, t_pose, left_hand_up, right_hand_up, neutral."""
+        return vision_lib.get_vision().detect_pose(show=True)
+
+    def which_object(self, color: str) -> int:
+        """Returns left-to-right index of largest colour object (1-based), 0 if not found."""
+        return vision_lib.get_vision().which_object(color=str(color), show=True)
+
+    def calibrate_color(self, color: str, box_size: int = 80):
+        """Calibrate colour by sampling the centre of the frame. Point at target object first."""
+        return vision_lib.get_vision().calibrate_color(color=str(color), box_size=int(box_size), show=True)
+
+    def set_color_profile(self, color: str, lower_hsv, upper_hsv=None):
+        """Set custom HSV colour profile."""
+        return vision_lib.get_vision().set_color_profile(color=str(color), lower_hsv=lower_hsv, upper_hsv=upper_hsv)
+
+    def show_profiles(self):
+        """Print all colour profiles."""
+        return vision_lib.get_vision().show_profiles()
+
+    def load_calibration(self, path=None) -> bool:
+        """Load camera calibration npz file for angular + lateral measurements."""
+        return vision_lib.get_vision().load_calibration(path=path)
 
 
 class PickupNamespace(_Namespace):
