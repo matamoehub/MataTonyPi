@@ -777,6 +777,238 @@ class PatrolNamespace(_Namespace):
             patrol_lib.update_frame(frame)
 
 
+class HelpNamespace:
+    """Callable help system — myRobot.help() or myRobot.help.vision() etc."""
+
+    _W = 60
+
+    def __call__(self):
+        """Print all available namespaces."""
+        print("=" * self._W)
+        print("  MataTonyPi — Quick Reference")
+        print("  Call myRobot.help.<namespace>() for details")
+        print("-" * self._W)
+        namespaces = [
+            ("myRobot.help.vision()",     "camera, colour, YOLO, face, hands, pose"),
+            ("myRobot.help.pickup()",     "find, approach, grab, lift, carry, place"),
+            ("myRobot.help.head()",       "look, nod, shake, scan, wiggle, glance"),
+            ("myRobot.help.motion()",     "walk, turn, step"),
+            ("myRobot.help.arms()",       "raise, open, close, grab pose"),
+            ("myRobot.help.pose()",       "stand, sit, bow, neutral, ready"),
+            ("myRobot.help.anim()",       "action groups, dance, wave, run by name/id"),
+            ("myRobot.help.emotion()",    "happy, sad, excited, confused, greet"),
+            ("myRobot.help.voice()",      "say, greet, celebrate, select voice"),
+            ("myRobot.help.battery()",    "voltage, percentage, is_low, is_critical"),
+            ("myRobot.help.sensors()",    "distance (ToF), imu, buzzer"),
+            ("myRobot.help.navigation()", "go_to_tag, follow_person, stop"),
+            ("myRobot.help.team()",       "multi-robot cues, signal, broadcast"),
+            ("myRobot.help.games()",      "Simon Says colour memory game"),
+            ("myRobot.help.patrol()",     "autonomous patrol with obstacle log"),
+        ]
+        for call, desc in namespaces:
+            print(f"  {call:<35} {desc}")
+        print("-" * self._W)
+        print("  myRobot.status()    full backend status")
+        print("  myRobot.versions()  library version table")
+        print("  myRobot.diagnose()  hardware diagnostic")
+        print("=" * self._W)
+
+    def _header(self, title: str):
+        print("=" * self._W)
+        print(f"  {title}")
+        print("-" * self._W)
+
+    def _footer(self):
+        print("=" * self._W)
+
+    def _line(self, call: str, desc: str):
+        print(f"  {call:<42} # {desc}")
+
+    def vision(self):
+        self._header("myRobot.vision — Camera & Detection")
+        self._line('myRobot.vision.snapshot()',                   'take a photo, show in Jupyter')
+        self._line('myRobot.vision.find_color("red")',            'find red blob, show annotated frame')
+        self._line('myRobot.vision.find_object("cup")',           'find named object via YOLO')
+        self._line('myRobot.vision.detect_objects()',             'detect all objects via YOLO')
+        self._line('myRobot.vision.detect_objects(confidence=0.3)','lower threshold = more detections')
+        self._line('myRobot.vision.find_face()',                  'detect a face')
+        self._line('myRobot.vision.find_faces()',                 'detect all faces')
+        self._line('myRobot.vision.recognize_hands()',            'detect hands + gestures')
+        self._line('myRobot.vision.detect_pose()',                'body pose: hands_up, t_pose ...')
+        self._line('myRobot.vision.find_tag(1)',                  'find AprilTag ID 1')
+        self._line('myRobot.vision.target_position("red")',       'direction: left / center / right / lost')
+        self._line('myRobot.vision.locate_object("red")',         'target_position + angle + depth')
+        self._line('myRobot.vision.which_object("red")',          'index of largest object (L to R)')
+        self._line('myRobot.vision.estimate_distance(px_w, 4.5)','depth in cm from pixel width + real size')
+        self._line('myRobot.vision.calibrate_color("red")',       'calibrate colour from frame centre')
+        self._line('myRobot.vision.set_color_profile("red",...)', 'set custom HSV range')
+        self._line('myRobot.vision.show_profiles()',              'print all colour profiles')
+        self._line('myRobot.vision.object_classes()',             'list all 80 YOLO class names')
+        self._line('myRobot.vision.yolo_available()',             'True if YOLO installed')
+        self._line('myRobot.vision.describe()',                   'AI scene description (Claude API)')
+        self._footer()
+
+    def pickup(self):
+        self._header("myRobot.pickup — Object Pickup")
+        self._line('myRobot.pickup.find("red")',          'snapshot + detect red → DetectionResult')
+        self._line('myRobot.pickup.find("cup")',          'snapshot + detect cup via YOLO')
+        self._line('myRobot.pickup.approach_object("red")','walk toward object')
+        self._line('myRobot.pickup.pick_up("red")',       'run grab action sequence')
+        self._line('myRobot.pickup.lift_to_chest()',      'pick up + hold at chest height')
+        self._line('myRobot.pickup.grab()',               'grab (no name needed)')
+        self._line('myRobot.pickup.carry()',              'arms into carry posture')
+        self._line('myRobot.pickup.place_down()',         'set object down')
+        self._line('myRobot.pickup.release()',            'open hand')
+        self._line('myRobot.pickup.transport("red")',     'carry and walk')
+        self._footer()
+
+    def head(self):
+        self._header("myRobot.head — Head Movement")
+        self._line('myRobot.head.look_left()',      'pan left')
+        self._line('myRobot.head.look_right()',     'pan right')
+        self._line('myRobot.head.look_up()',        'tilt up')
+        self._line('myRobot.head.look_down()',      'tilt down (use before floor pickup)')
+        self._line('myRobot.head.center()',         'return to centre')
+        self._line('myRobot.head.nod()',            'nod yes')
+        self._line('myRobot.head.shake()',          'shake no')
+        self._line('myRobot.head.scan()',           'look left then right then centre')
+        self._line('myRobot.head.wiggle(cycles=2)', 'friendly left-right wiggle')
+        self._line('myRobot.head.glance_left()',    'quick look left then back')
+        self._line('myRobot.head.glance_right()',   'quick look right then back')
+        self._line('myRobot.head.tiny_wiggle(2)',   'subtle wiggle for 2 seconds')
+        self._footer()
+
+    def motion(self):
+        self._header("myRobot.motion — Walking & Turning")
+        self._line('myRobot.motion.walk_forward(steps=1)',  'walk forward')
+        self._line('myRobot.motion.walk_backward(steps=1)', 'walk backward')
+        self._line('myRobot.motion.turn_left(steps=1)',     'turn left')
+        self._line('myRobot.motion.turn_right(steps=1)',    'turn right')
+        self._line('myRobot.motion.step_left(steps=1)',     'side step left')
+        self._line('myRobot.motion.step_right(steps=1)',    'side step right')
+        self._line('myRobot.motion.approach()',             'one step forward')
+        self._line('myRobot.motion.stop()',                 'stop all motion')
+        self._footer()
+
+    def arms(self):
+        self._header("myRobot.arms — Arm Poses")
+        self._line('myRobot.arms.left_up()',      'raise left arm')
+        self._line('myRobot.arms.right_up()',     'raise right arm')
+        self._line('myRobot.arms.hands_up()',     'raise both arms')
+        self._line('myRobot.arms.open()',         'open arms wide')
+        self._line('myRobot.arms.close()',        'close/fold arms in')
+        self._line('myRobot.arms.center()',       'arms to neutral/sides')
+        self._line('myRobot.arms.grab_pose()',    'arms into grab position')
+        self._line('myRobot.arms.carry_pose()',   'arms into carry position')
+        self._line('myRobot.arms.release_pose()', 'open arms to release')
+        self._footer()
+
+    def pose(self):
+        self._header("myRobot.pose — Body Poses")
+        self._line('myRobot.pose.stand()',   'stand upright — most common reset')
+        self._line('myRobot.pose.ready()',   'stand, arms slightly out')
+        self._line('myRobot.pose.neutral()', 'stand, relaxed home position')
+        self._line('myRobot.pose.bow()',     'bow forward')
+        self._line('myRobot.pose.sit()',     'sit / squat down')
+        self._line('myRobot.pose.carry()',   'carry posture')
+        self._footer()
+
+    def anim(self):
+        self._header("myRobot.anim — Action Groups & Animation")
+        self._line('myRobot.anim.wave()',                     'wave hello')
+        self._line('myRobot.anim.dance()',                    'do a dance move')
+        self._line('myRobot.anim.celebrate()',                'celebrate')
+        self._line('myRobot.anim.run("wave")',                'run action group by name')
+        self._line('myRobot.anim.run("go_forward", times=3)', 'run action group N times')
+        self._line('myRobot.anim.run("17")',                  'run numbered dance (16–24)')
+        self._line('myRobot.anim.run_id(16)',                 'run action group by numeric ID')
+        self._line('myRobot.anim.show_action_groups()',       'print all installed action groups')
+        self._line('myRobot.anim.list_action_groups()',       'return list of action group names')
+        self._line('myRobot.anim.dance_moves()',              'return dance action groups only')
+        self._footer()
+
+    def emotion(self):
+        self._header("myRobot.emotion — Emotions")
+        self._line('myRobot.emotion.happy()',          'raise arms + bob head + cheerful beep')
+        self._line('myRobot.emotion.sad()',            'drop arms + tilt head + low buzz')
+        self._line('myRobot.emotion.excited()',        'wave + rapid high beeps')
+        self._line('myRobot.emotion.confused()',       'head tilts left/right + mid beep')
+        self._line('myRobot.emotion.greet()',          'wave + short beep')
+        self._line('myRobot.emotion.express("happy")', 'express emotion by name')
+        self._line('myRobot.emotion.is_busy()',        'True if currently expressing')
+        self._line('myRobot.emotion.available()',      'list of emotion names')
+        self._footer()
+
+    def voice(self):
+        self._header("myRobot.voice — Speech")
+        self._line('myRobot.voice.say("Hello!")',           'speak (waits until done)')
+        self._line('myRobot.voice.say("Hi", block=False)',  'speak in background')
+        self._line('myRobot.voice.greet()',                 'say "Hello everyone."')
+        self._line('myRobot.voice.celebrate()',             'say "Yay. Great job."')
+        self._line('myRobot.voice.think()',                 'say "Hmm. Let me think."')
+        self._line('myRobot.voice.voices()',                'list installed Piper voices')
+        self._line('myRobot.voice.select("ryan")',          'switch voice by name')
+        self._line('myRobot.voice.select_voice_number(2)',  'switch voice by number')
+        self._footer()
+
+    def battery(self):
+        self._header("myRobot.battery — Battery")
+        self._line('myRobot.battery.percentage()',  'battery level 0–100')
+        self._line('myRobot.battery.voltage()',     'battery voltage e.g. 11.4')
+        self._line('myRobot.battery.is_low()',      'True if below 10.5V')
+        self._line('myRobot.battery.is_critical()', 'True if below 10.0V')
+        self._line('myRobot.battery.status()',      'dict with all battery info')
+        self._footer()
+
+    def sensors(self):
+        self._header("myRobot.sensors — Sensors")
+        self._line('myRobot.sensors.distance()',             'ToF distance in mm (-1 if no sensor)')
+        self._line('myRobot.sensors.init_distance_sensor()', 'start ToF sensor')
+        self._line('myRobot.sensors.imu()',                  'accelerometer data dict')
+        self._line('myRobot.sensors.buzz(1800)',             'beep at 1800Hz for 0.1s')
+        self._line('myRobot.sensors.buzz(1800, 0.3)',        'beep at 1800Hz for 0.3s')
+        self._line('myRobot.sensors.buzz_pattern("happy")',  'named: happy sad sos short long')
+        self._footer()
+
+    def navigation(self):
+        self._header("myRobot.navigation — Navigation")
+        self._line('myRobot.navigation.go_to_tag(1)',      'walk to AprilTag ID 1')
+        self._line('myRobot.navigation.go_to_tag(2, timeout=15)', 'with 15s timeout')
+        self._line('myRobot.navigation.follow_person()',   'follow a person (YOLO + ToF)')
+        self._line('myRobot.navigation.stop()',            'stop navigation or following')
+        self._line('myRobot.navigation.get_tag_map()',     'last seen position of each tag')
+        self._footer()
+
+    def team(self):
+        self._header("myRobot.team — Multi-Robot")
+        self._line('myRobot.team.local_ip()',                              'this robot\'s IP address')
+        self._line('myRobot.team.start_server()',                          'start cue server')
+        self._line('myRobot.team.stop_server()',                           'stop cue server')
+        self._line('myRobot.team.signal("192.168.1.42", cue="go")',        'send cue to one robot')
+        self._line('myRobot.team.broadcast(["1.42","1.43"], cue="start")', 'send to many robots')
+        self._line('myRobot.team.wait_for("go")',                          'block until cue arrives')
+        self._line('myRobot.team.wait_for("go", timeout=10)',              'wait up to 10 seconds')
+        self._line('myRobot.team.cues()',                                  'list received cues')
+        self._footer()
+
+    def games(self):
+        self._header("myRobot.games — Games")
+        self._line('myRobot.games.simon_says()',             'start Simon Says (default difficulty 2)')
+        self._line('myRobot.games.simon_says(difficulty=1)', 'easy: 4 rounds, 5s timeout')
+        self._line('myRobot.games.simon_says(difficulty=2)', 'medium: 8 rounds, 5s timeout')
+        self._line('myRobot.games.simon_says(difficulty=3)', 'hard: 8 rounds, 3s timeout')
+        self._line('myRobot.games.stop_game()',              'stop current game')
+        self._line('myRobot.games.is_game_running()',        'True if game in progress')
+        self._footer()
+
+    def patrol(self):
+        self._header("myRobot.patrol — Autonomous Patrol")
+        self._line('myRobot.patrol.start()',         'begin patrol + obstacle logging')
+        self._line('myRobot.patrol.stop()',          'stop, save JSON log, optional AI summary')
+        self._line('myRobot.patrol.log()',           'current obstacle log list')
+        self._footer()
+
+
 class GamesNamespace(_Namespace):
     def simon_says(self, difficulty: int = 2):
         if games_lib is None:
@@ -815,6 +1047,7 @@ class RobotV2:
         self.navigation = NavigationNamespace(self)
         self.patrol     = PatrolNamespace(self)
         self.games      = GamesNamespace(self)
+        self.help       = HelpNamespace()
         if battery_lib is not None:
             try:
                 battery_lib.start_monitoring()
