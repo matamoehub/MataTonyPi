@@ -272,18 +272,31 @@ class VisionNamespace(_Namespace):
         return DetectionResult(found=True, label=str(name), x=int(obj["cx"]), y=int(obj["cy"]), area=int(obj["area"]), confidence=1.0, note=result.get("path", ""))
 
     def find_object(self, name: str) -> DetectionResult:
-        """Find a specific object by class name using YOLOv8n."""
+        """Find a specific object by class name using YOLOv8n.
+        Shows annotated frame in Jupyter with a box around the detected object."""
         if yolo_lib is None or not yolo_lib.is_available():
             return DetectionResult(found=False, label=str(name),
                                    note="YOLOv8n not available — pip install ultralytics")
-        frame = vision_lib.get_vision()._capture_frame()
+        import cv2
+        vis = vision_lib.get_vision()
+        frame = vis._capture_frame()
         det = yolo_lib.find_class(frame, str(name))
+        annotated = frame.copy()
+        if det is not None:
+            x1, y1 = det["x"], det["y"]
+            x2, y2 = x1 + det["w"], y1 + det["h"]
+            cv2.rectangle(annotated, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            label_text = f"{det['label']} {det['confidence']:.0%}"
+            cv2.putText(annotated, label_text, (x1, max(y1 - 8, 12)),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 0), 2)
+        title = f"Looking for: {name}  —  {'✓ Found!' if det else '✗ Not found'}"
+        info = vis.show_image(annotated, title=title)
         self._log("vision.find_object", name=str(name))
         if det is None:
             return DetectionResult(found=False, label=str(name), note="Not detected")
         return DetectionResult(found=True, label=det["label"],
                                x=det["cx"], y=det["cy"], area=det["area"],
-                               confidence=det["confidence"])
+                               confidence=det["confidence"], note=info.get("path", ""))
 
     def find_face(self) -> DetectionResult:
         self._prepare_face_capture()
@@ -343,12 +356,26 @@ class VisionNamespace(_Namespace):
         }
 
     def detect_objects(self, confidence: float = 0.45) -> list:
-        """Detect all objects in frame using YOLOv8n. Returns list of dicts."""
+        """Detect all objects in frame using YOLOv8n.
+        Shows annotated frame in Jupyter with boxes around every detected object."""
         if yolo_lib is None or not yolo_lib.is_available():
             self._log("vision.detect_objects")
             return []
-        frame = vision_lib.get_vision()._capture_frame()
-        return yolo_lib.detect(frame, confidence=float(confidence))
+        import cv2
+        vis = vision_lib.get_vision()
+        frame = vis._capture_frame()
+        detections = yolo_lib.detect(frame, confidence=float(confidence))
+        annotated = frame.copy()
+        for det in detections:
+            x1, y1 = det["x"], det["y"]
+            x2, y2 = x1 + det["w"], y1 + det["h"]
+            cv2.rectangle(annotated, (x1, y1), (x2, y2), (0, 200, 255), 2)
+            label_text = f"{det['label']} {det['confidence']:.0%}"
+            cv2.putText(annotated, label_text, (x1, max(y1 - 8, 12)),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 200, 255), 2)
+        vis.show_image(annotated, title=f"Detected {len(detections)} object(s)")
+        self._log("vision.detect_objects", count=len(detections))
+        return detections
 
     def find_faces(self) -> list:
         """Detect ALL faces (not just one). Returns list of DetectionResult."""
@@ -410,6 +437,29 @@ class VisionNamespace(_Namespace):
 
 
 class PickupNamespace(_Namespace):
+    _COLOUR_NAMES = {"red", "green", "blue", "yellow", "r", "g", "b", "y"}
+
+    def find(self, name: str) -> DetectionResult:
+        """Look for an object before picking up.
+        Captures a frame, runs detection, and shows the annotated image in Jupyter.
+        Uses colour detection for red/green/blue/yellow, YOLOv8n for everything else.
+        Returns a DetectionResult so you can check result.found before acting."""
+        target = str(name).strip().lower()
+        if target in self._COLOUR_NAMES:
+            result = vision_lib.get_vision().find_color(target, show=True)
+            objects = result.get("objects", [])
+            self._log("pickup.find", name=target, method="colour")
+            if not objects:
+                return DetectionResult(found=False, label=target, note="No matching colour found")
+            obj = max(objects, key=lambda item: item["area"])
+            return DetectionResult(found=True, label=target,
+                                   x=int(obj["cx"]), y=int(obj["cy"]),
+                                   area=int(obj["area"]), confidence=1.0,
+                                   note=result.get("path", ""))
+        # General object — use YOLOv8n
+        self._log("pickup.find", name=name, method="yolo")
+        return self._owner.vision.find_object(name)
+
     def approach_object(self, name: str):
         return self._run_action("pickup.approach_object", [("approach",), ("pickup",), ("transport",)])
 
