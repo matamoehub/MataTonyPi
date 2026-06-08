@@ -1,13 +1,22 @@
 #!/usr/bin/env python3
 """YOLOv8n object detection library for MataTonyPi."""
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 from __future__ import annotations
+import os
 import threading
+from pathlib import Path
 from typing import Any
 
 _model = None
 _model_lock = threading.Lock()
 _available: bool | None = None   # None = not yet checked
+
+_YOLO_MODEL_SEARCH_PATHS = [
+    Path("/opt/robot/models/yolov8n.pt"),
+    Path(__file__).resolve().parent.parent / "models" / "yolov8n.pt",
+    Path.home() / ".config" / "Ultralytics" / "yolov8n.pt",
+]
+_YOLO_MODEL_NAME = os.environ.get("YOLO_MODEL", "yolov8n.pt")
 
 
 def is_available() -> bool:
@@ -27,7 +36,13 @@ def _get_model():
     with _model_lock:
         if _model is None:
             from ultralytics import YOLO
-            _model = YOLO("yolov8n.pt")
+            for p in _YOLO_MODEL_SEARCH_PATHS:
+                if p.exists():
+                    _model = YOLO(str(p))
+                    print(f"[yolo_lib] model loaded from {p}")
+                    return _model
+            print("[yolo_lib] pre-installed model not found — downloading yolov8n.pt…")
+            _model = YOLO(_YOLO_MODEL_NAME)
     return _model
 
 
