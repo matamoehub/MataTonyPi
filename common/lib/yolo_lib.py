@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """YOLOv8n object detection library for MataTonyPi."""
-__version__ = "1.1.0"
 from __future__ import annotations
+__version__ = "1.1.0"
 import os
 import threading
 from pathlib import Path

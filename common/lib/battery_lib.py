@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Battery monitoring library for MataTonyPi."""
-__version__ = "1.0.0"
 from __future__ import annotations
+__version__ = "1.0.0"
 import threading
 import time
 from typing import Any
