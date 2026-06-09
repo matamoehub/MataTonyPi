@@ -107,7 +107,7 @@ class AnimationNamespace(_Namespace):
         return self._run_action("anim.dance", ["twist", "chest", "left_uppercut", "stepping"])
 
     def celebrate(self):
-        return self._run_action("anim.celebrate", ["wave", "twist", "chest"])
+        return self._run_action("anim.celebrate", ["left_uppercut", "wave", "twist"])
 
     def think(self):
         self._owner.head.look_left()
@@ -191,13 +191,23 @@ class ArmsNamespace(_Namespace):
         return self._run_action("arms.center", ["stand"])
 
     def grab_pose(self):
-        return self._run_action("arms.grab_pose", ["grab_squat_right", "grab_right", ("grab", "squat")])
+        return self._run_action("arms.grab_pose", ["grab_squat_right", "grab_right"])
 
     def carry_pose(self):
         return self._run_action("arms.carry_pose", ["lift_up", "put_up_object"])
 
     def release_pose(self):
         return self._run_action("arms.release_pose", ["put_down", "put_down_object"])
+
+    def punch_left(self):
+        return self._run_action("arms.punch_left", ["left_uppercut"])
+
+    def punch_right(self):
+        return self._run_action("arms.punch_right", ["right_uppercut"])
+
+    def punch(self):
+        self._run_action("arms.punch", ["left_uppercut"])
+        return self._run_action("arms.punch", ["right_uppercut"])
 
 
 class PoseNamespace(_Namespace):
@@ -932,6 +942,9 @@ class HelpNamespace:
         self._line('myRobot.arms.grab_pose()',    'arms into grab position')
         self._line('myRobot.arms.carry_pose()',   'arms into carry position')
         self._line('myRobot.arms.release_pose()', 'open arms to release')
+        self._line('myRobot.arms.punch_left()',   'fast left uppercut')
+        self._line('myRobot.arms.punch_right()',  'fast right uppercut')
+        self._line('myRobot.arms.punch()',        'left then right uppercut')
         self._footer()
 
     def pose(self):
