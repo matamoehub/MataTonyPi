@@ -109,6 +109,15 @@ class AnimationNamespace(_Namespace):
     def celebrate(self):
         return self._run_action("anim.celebrate", ["left_uppercut", "wave", "twist"])
 
+    def martial_arts(self):
+        return self._run_action("anim.martial_arts", ["wing_chun", "toulan_a", "toulan_b"])
+
+    def bow_deep(self):
+        return self._run_action("anim.bow_deep", ["jugong", "bow"])
+
+    def catch_ball(self):
+        return self._run_action("anim.catch_ball", ["catch_ball_go", "catch_ball"])
+
     def think(self):
         self._owner.head.look_left()
         self._owner.head.look_right()
@@ -206,8 +215,14 @@ class ArmsNamespace(_Namespace):
         return self._run_action("arms.punch_right", ["right_uppercut"])
 
     def punch(self):
-        self._run_action("arms.punch", ["left_uppercut"])
-        return self._run_action("arms.punch", ["right_uppercut"])
+        self._run_action("arms.punch_left", ["left_uppercut"])
+        return self._run_action("arms.punch_right", ["right_uppercut"])
+
+    def kick_left(self):
+        return self._run_action("arms.kick_left", ["left_kick", "left_shot"])
+
+    def kick_right(self):
+        return self._run_action("arms.kick_right", ["right_kick", "right_shot"])
 
 
 class PoseNamespace(_Namespace):
@@ -240,17 +255,29 @@ class MotionNamespace(_Namespace):
     def walk_backward(self, steps: int = 1):
         return self._steps("motion.walk_backward", ["back", "go_back", ("backward",)], steps=steps)
 
+    def walk_fast(self, steps: int = 1):
+        return self._steps("motion.walk_fast", ["go_forward_fast", "go_forward"], steps=steps)
+
     def turn_left(self, steps: int = 1):
-        return self._steps("motion.turn_left", ["turn_left_small_step", "turn_left", ("left", "turn")], steps=steps)
+        return self._steps("motion.turn_left", ["turn_left_small_step", "turn_left"], steps=steps)
 
     def turn_right(self, steps: int = 1):
-        return self._steps("motion.turn_right", ["turn_right_small_step", "turn_right", ("right", "turn")], steps=steps)
+        return self._steps("motion.turn_right", ["turn_right_small_step", "turn_right"], steps=steps)
+
+    def turn_left_fast(self, steps: int = 1):
+        return self._steps("motion.turn_left_fast", ["turn_left_fast", "turn_left"], steps=steps)
+
+    def turn_right_fast(self, steps: int = 1):
+        return self._steps("motion.turn_right_fast", ["turn_right_fast", "turn_right"], steps=steps)
 
     def step_left(self, steps: int = 1):
-        return self._steps("motion.step_left", ["left_move", "left_move_large", ("left", "move")], steps=steps)
+        return self._steps("motion.step_left", ["left_move", "left_move_fast"], steps=steps)
 
     def step_right(self, steps: int = 1):
-        return self._steps("motion.step_right", ["right_move", "right_move_large", ("right", "move")], steps=steps)
+        return self._steps("motion.step_right", ["right_move", "right_move_fast"], steps=steps)
+
+    def creep(self, steps: int = 1):
+        return self._steps("motion.creep", ["creep_forward", "go_forward"], steps=steps)
 
     def approach(self):
         return self.walk_forward(steps=1)
@@ -567,6 +594,10 @@ class PickupNamespace(_Namespace):
 
     def release(self):
         return self._run_action("pickup.release", ["put_down", "put_down2"])
+
+    def grab_and_lift(self):
+        """Squat, grab and stand in one move — full floor pickup sequence."""
+        return self._run_action("pickup.grab_and_lift", ["grab_squat_up_right", "grab_squat_up_left", "move_up"])
 
     def transport(self, name: str):
         return self._run_action("pickup.transport", ["go_forward", "go_forward_one_step"])
@@ -895,6 +926,7 @@ class HelpNamespace:
         self._line('myRobot.pickup.find("cup")',          'snapshot + detect cup via YOLO')
         self._line('myRobot.pickup.approach_object("red")','walk toward object')
         self._line('myRobot.pickup.pick_up("red")',       'run grab action sequence')
+        self._line('myRobot.pickup.grab_and_lift()',      'squat + grab + stand in one move')
         self._line('myRobot.pickup.lift_to_chest()',      'pick up + hold at chest height')
         self._line('myRobot.pickup.grab()',               'grab (no name needed)')
         self._line('myRobot.pickup.carry()',              'arms into carry posture')
@@ -923,10 +955,14 @@ class HelpNamespace:
         self._header("myRobot.motion — Walking & Turning")
         self._line('myRobot.motion.walk_forward(steps=1)',  'walk forward')
         self._line('myRobot.motion.walk_backward(steps=1)', 'walk backward')
+        self._line('myRobot.motion.walk_fast(steps=1)',     'fast walk forward')
         self._line('myRobot.motion.turn_left(steps=1)',     'turn left')
         self._line('myRobot.motion.turn_right(steps=1)',    'turn right')
+        self._line('myRobot.motion.turn_left_fast()',       'fast turn left')
+        self._line('myRobot.motion.turn_right_fast()',      'fast turn right')
         self._line('myRobot.motion.step_left(steps=1)',     'side step left')
         self._line('myRobot.motion.step_right(steps=1)',    'side step right')
+        self._line('myRobot.motion.creep(steps=1)',         'slow stealth creep forward')
         self._line('myRobot.motion.approach()',             'one step forward')
         self._line('myRobot.motion.stop()',                 'stop all motion')
         self._footer()
@@ -945,6 +981,8 @@ class HelpNamespace:
         self._line('myRobot.arms.punch_left()',   'fast left uppercut')
         self._line('myRobot.arms.punch_right()',  'fast right uppercut')
         self._line('myRobot.arms.punch()',        'left then right uppercut')
+        self._line('myRobot.arms.kick_left()',    'left kick')
+        self._line('myRobot.arms.kick_right()',   'right kick')
         self._footer()
 
     def pose(self):
@@ -961,7 +999,10 @@ class HelpNamespace:
         self._header("myRobot.anim — Action Groups & Animation")
         self._line('myRobot.anim.wave()',                     'wave hello')
         self._line('myRobot.anim.dance()',                    'do a dance move')
-        self._line('myRobot.anim.celebrate()',                'celebrate')
+        self._line('myRobot.anim.celebrate()',                'celebrate with uppercut')
+        self._line('myRobot.anim.martial_arts()',             'wing chun sequence')
+        self._line('myRobot.anim.bow_deep()',                 'deep formal bow')
+        self._line('myRobot.anim.catch_ball()',               'ball catching sequence')
         self._line('myRobot.anim.run("wave")',                'run action group by name')
         self._line('myRobot.anim.run("go_forward", times=3)', 'run action group N times')
         self._line('myRobot.anim.run("17")',                  'run numbered dance (16–24)')
