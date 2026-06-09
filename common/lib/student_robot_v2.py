@@ -573,7 +573,20 @@ class VoiceNamespace(_Namespace):
         return tts_lib.available_voices(installed_only=True)
 
     def show_voices(self):
-        return self.voices()
+        voices = tts_lib.available_voices(installed_only=True)
+        current = tts_lib.current_voice() if hasattr(tts_lib, "current_voice") else "?"
+        print(f"Active voice: {current}")
+        print("Installed voices:")
+        for i, v in enumerate(voices, 1):
+            marker = " ◀ active" if v == current else ""
+            print(f"  {i}. {v}{marker}")
+        return voices
+
+    def current_voice(self) -> str:
+        """Return the currently active voice name."""
+        if hasattr(tts_lib, "current_voice"):
+            return tts_lib.current_voice()
+        return "amy"
 
     def select(self, voice: str | None = None, number: int | None = None):
         return tts_lib.select_voice(voice=voice, number=number)
@@ -964,9 +977,10 @@ class HelpNamespace:
         self._line('myRobot.voice.greet()',                 'say "Hello everyone."')
         self._line('myRobot.voice.celebrate()',             'say "Yay. Great job."')
         self._line('myRobot.voice.think()',                 'say "Hmm. Let me think."')
-        self._line('myRobot.voice.voices()',                'list installed Piper voices')
-        self._line('myRobot.voice.select("ryan")',          'switch voice by name')
-        self._line('myRobot.voice.select_voice_number(2)',  'switch voice by number')
+        self._line('myRobot.voice.show_voices()',            'list installed voices + show active')
+        self._line('myRobot.voice.current_voice()',         'print the active voice name')
+        self._line('myRobot.voice.select("ryan")',          'switch voice by name (persists)')
+        self._line('myRobot.voice.select_voice_number(2)',  'switch voice by number (persists)')
         self._footer()
 
     def battery(self):
