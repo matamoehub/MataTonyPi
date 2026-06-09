@@ -364,26 +364,37 @@ def action_name_for_id(action_id: str | int) -> str | None:
 
 def _action_category(name: str, action_id: str | None = None) -> str:
     token = _normalize(name)
+
+    # Numbered files 16–35 are dances (e.g. "16", "17" … "24", "35")
+    try:
+        idx = int(name.strip())
+        if 16 <= idx <= 35:
+            return "dance"
+    except Exception:
+        pass
+
     if action_id is not None:
         try:
             idx = int(action_id)
-            if 16 <= idx <= 24:
+            if 16 <= idx <= 35:
                 return "dance"
         except Exception:
             pass
 
-    if any(part in token for part in ("dance", "twist", "stepping", "chest", "weightlifting")):
+    if any(part in token for part in ("dance", "twist", "stepping", "chest", "weightlifting", "uppercut", "kick", "jugong", "wingchun")):
         return "dance"
-    if any(part in token for part in ("forward", "back", "move", "turn", "walk", "step")):
+    if any(part in token for part in ("forward", "back", "move", "turn", "walk", "step", "creep")):
         return "motion"
-    if any(part in token for part in ("wave", "bow", "greet", "hello")):
+    if any(part in token for part in ("wave", "bow", "greet", "hello", "jugong")):
         return "greeting"
-    if any(part in token for part in ("kick", "shot", "shoot")):
+    if any(part in token for part in ("shot", "shoot")):
         return "sport"
-    if any(part in token for part in ("grab", "pickup", "carry", "release", "place", "transport", "catch")):
+    if any(part in token for part in ("grab", "pickup", "catch", "put", "lift", "seize")):
         return "pickup"
-    if any(part in token for part in ("stand", "sit", "squat", "rest", "ready", "home")):
+    if any(part in token for part in ("stand", "sit", "squat", "rest", "ready", "home", "liedown", "situp", "pushup")):
         return "pose"
+    if any(part in token for part in ("hand", "arm")):
+        return "arms"
     return "action"
 
 

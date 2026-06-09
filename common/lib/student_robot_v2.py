@@ -104,10 +104,10 @@ class AnimationNamespace(_Namespace):
         return self._run_action("anim.greet", ["wave", ("greet",), ("hello",)])
 
     def dance(self):
-        return self._run_action("anim.dance", ["dance", "twist", ("happy",), ("celebrate",)])
+        return self._run_action("anim.dance", ["twist", "chest", "left_uppercut", "stepping"])
 
     def celebrate(self):
-        return self._run_action("anim.celebrate", ["dance", "wave", "twist", ("celebrate",)])
+        return self._run_action("anim.celebrate", ["wave", "twist", "chest"])
 
     def think(self):
         self._owner.head.look_left()
@@ -173,31 +173,31 @@ class HeadNamespace(_Namespace):
 
 class ArmsNamespace(_Namespace):
     def left_up(self):
-        return self._run_action("arms.left_up", [("left", "hand", "up"), ("left", "arm", "up"), ("raise", "left")])
+        return self._run_action("arms.left_up", ["lift_left_hand", "left_hand", ("lift", "left")])
 
     def right_up(self):
-        return self._run_action("arms.right_up", [("right", "hand", "up"), ("right", "arm", "up"), ("raise", "right")])
+        return self._run_action("arms.right_up", ["right_hand", ("right", "hand")])
 
     def hands_up(self):
-        return self._run_action("arms.hands_up", [("hands", "up"), ("raise", "hands"), ("both", "hands", "up")])
+        return self._run_action("arms.hands_up", ["go_hand_up", "go_hand_up1", ("go", "hand", "up")])
 
     def open(self):
-        return self._run_action("arms.open", [("open", "hand"), ("open", "arm"), ("open",)])
+        return self._run_action("arms.open", ["lift_left_hand", "left_hand"])
 
     def close(self):
-        return self._run_action("arms.close", [("close", "hand"), ("close", "arm"), ("close",)])
+        return self._run_action("arms.close", ["stand"])
 
     def center(self):
-        return self._run_action("arms.center", [("stand",), ("home", "arm"), ("center", "arm")])
+        return self._run_action("arms.center", ["stand"])
 
     def grab_pose(self):
-        return self._run_action("arms.grab_pose", [("grab",), ("pickup",), ("pick",)])
+        return self._run_action("arms.grab_pose", ["grab_squat_right", "grab_right", ("grab", "squat")])
 
     def carry_pose(self):
-        return self._run_action("arms.carry_pose", [("carry",), ("hold",)])
+        return self._run_action("arms.carry_pose", ["lift_up", "put_up_object"])
 
     def release_pose(self):
-        return self._run_action("arms.release_pose", [("release",), ("place",), ("put", "down")])
+        return self._run_action("arms.release_pose", ["put_down", "put_down_object"])
 
 
 class PoseNamespace(_Namespace):
@@ -214,10 +214,10 @@ class PoseNamespace(_Namespace):
         return self._run_action("pose.stand", ["stand"])
 
     def sit(self):
-        return self._run_action("pose.sit", ["sit", ("squat",), ("rest",)])
+        return self._run_action("pose.sit", ["squat", "squat_down"])
 
     def carry(self):
-        return self._run_action("pose.carry", [("carry",), ("hold",)])
+        return self._run_action("pose.carry", ["lift_up", "put_up_object"])
 
 
 class MotionNamespace(_Namespace):
@@ -508,13 +508,13 @@ class PickupNamespace(_Namespace):
         return self._owner.vision.find_object(name)
 
     def approach_object(self, name: str):
-        return self._run_action("pickup.approach_object", [("approach",), ("pickup",), ("transport",)])
+        return self._run_action("pickup.approach_object", ["go_forward_one_step", "go_forward_one_small_step", "go_forward"])
 
     def pick_up(self, name: str):
-        return self._run_action("pickup.pick_up", [("pick",), ("pickup",), ("grab",)])
+        return self._run_action("pickup.pick_up", ["grab_squat_right", "grab_right", "catch_ball"])
 
     def grab(self):
-        return self._run_action("pickup.grab", [("grab",), ("pickup",)])
+        return self._run_action("pickup.grab", ["grab_squat_right", "grab_right"])
 
     def lift_to_chest(self) -> dict:
         """Pick up from the floor and hold at chest height instead of raising above head.
@@ -550,16 +550,16 @@ class PickupNamespace(_Namespace):
         return result
 
     def carry(self):
-        return self._run_action("pickup.carry", [("carry",), ("transport",)])
+        return self._run_action("pickup.carry", ["lift_up", "put_up_object"])
 
     def place_down(self):
-        return self._run_action("pickup.place_down", [("place",), ("put", "down"), ("release",)])
+        return self._run_action("pickup.place_down", ["put_down", "put_down_object", "put_down2"])
 
     def release(self):
-        return self._run_action("pickup.release", [("release",), ("open", "hand")])
+        return self._run_action("pickup.release", ["put_down", "put_down2"])
 
     def transport(self, name: str):
-        return self._run_action("pickup.transport", [("transport",), ("carry",)])
+        return self._run_action("pickup.transport", ["go_forward", "go_forward_one_step"])
 
 
 class VoiceNamespace(_Namespace):
