@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-__version__ = "1.4.0"
+__version__ = "1.4.2"
 
 import builtins
 from dataclasses import asdict, dataclass
@@ -157,6 +157,10 @@ class HeadNamespace(_Namespace):
 
     def center(self):
         return self._owner._wrap_call("head.center", head_lib.center)
+
+    def centre(self):
+        """British spelling alias for center()."""
+        return self.center()
 
     def nod(self):
         return self._owner._wrap_call("head.nod", head_lib.nod)
@@ -942,6 +946,7 @@ class HelpNamespace:
         self._line('myRobot.head.look_up()',        'tilt up')
         self._line('myRobot.head.look_down()',      'tilt down (use before floor pickup)')
         self._line('myRobot.head.center()',         'return to centre')
+        self._line('myRobot.head.centre()',         'same as center() (British spelling)')
         self._line('myRobot.head.nod()',            'nod yes')
         self._line('myRobot.head.shake()',          'shake no')
         self._line('myRobot.head.scan()',           'look left then right then centre')
