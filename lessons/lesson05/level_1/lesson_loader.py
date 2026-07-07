@@ -90,7 +90,11 @@ def setup(verbose: bool = True):
     common_lib = _resolve_common_lib(root)
     lessons_lib = root / "lessons" / "lib"
 
-    for path in (common_lib, lessons_lib):
+    # common_lib MUST precede lessons_lib on sys.path: shared libraries always
+    # load from common/lib; only workspace-local student files (e.g.
+    # student_robot_moves) fall through to lessons/lib. Iterating lessons_lib
+    # first inserts common_lib last, landing it at index 0.
+    for path in (lessons_lib, common_lib):
         path_s = str(path)
         if path.exists() and path_s not in sys.path:
             sys.path.insert(0, path_s)
