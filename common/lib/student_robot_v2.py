@@ -374,6 +374,30 @@ class VisionNamespace(_Namespace):
         self._prepare_face_capture()
         return vision_lib.get_vision().find_face(show=True)
 
+    def move_towards_color(self, color: str, steps: int = 1, deadzone: int = 50,
+                           push: bool = False, show: bool = False, min_area=None):
+        """Take one step to line TonyPi up with the largest object of a colour.
+        Steps sideways (step_left / step_right) until the object is centred, then
+        walks forward when centred if push=True. Call it repeatedly in a loop to
+        home in on a target. Returns the target_position() decision dict with an
+        extra 'moved' key: "left" | "right" | "forward" | None."""
+        decision = vision_lib.get_vision().target_position(
+            color=str(color), deadzone=int(deadzone), show=show, min_area=min_area)
+        direction = decision.get("direction")
+        decision["moved"] = None
+        n = max(1, int(steps))
+        if direction == "left":
+            self._owner.motion.step_left(steps=n)
+            decision["moved"] = "left"
+        elif direction == "right":
+            self._owner.motion.step_right(steps=n)
+            decision["moved"] = "right"
+        elif direction == "center" and push:
+            self._owner.motion.walk_forward(steps=n)
+            decision["moved"] = "forward"
+        self._log("vision.move_towards_color", color=str(color), moved=decision["moved"])
+        return decision
+
     def snapshot(self):
         return vision_lib.get_vision().snapshot(show=True)
 

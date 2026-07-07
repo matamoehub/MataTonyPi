@@ -3,13 +3,16 @@ from __future__ import annotations
 
 """TonyPi notebook-friendly camera and vision helper."""
 
-__version__ = "1.4.0"
+__version__ = "1.5.0"
 
+import base64
 import copy
+import json
 import os
 import tempfile
 import threading
 import time
+import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -142,6 +145,209 @@ def _gesture_to_game_move(gesture: str):
     return mapping.get(str(gesture).strip().lower())
 
 
+# --- robot_ops web camera fallback ------------------------------------------
+# When OpenCV cannot open the camera device directly (for example the vendor
+# TonyPi camera process is holding /dev/video), vision can fall back to the
+# robot_ops web snapshot endpoint. Enabled by default ("auto"); disable with
+# MATA_OPS_WEB_CAMERA=0.
+OPS_WEB_ENABLED_VALUES = {"1", "true", "yes", "on", "auto"}
+
+
+def _ops_web_enabled() -> bool:
+    value = str(os.environ.get("MATA_OPS_WEB_CAMERA", "auto")).strip().lower()
+    return value in OPS_WEB_ENABLED_VALUES
+
+
+def _ops_web_base() -> str:
+    return os.environ.get("OPS_WEB_BASE", "http://127.0.0.1")
+
+
+def _ops_web_snapshot_path() -> str:
+    return os.environ.get("OPS_WEB_SNAPSHOT_PATH", "/api/vision/snapshot")
+
+
+def _ops_web_timeout_s() -> float:
+    try:
+        return float(os.environ.get("OPS_WEB_TIMEOUT_S", "5.0"))
+    except Exception:
+        return 5.0
+
+
+def _ops_web_snapshot_frame(camera_index: int = 0, width: int = 640, height: int = 480, mirror: bool = False):
+    """Capture a single frame via the robot_ops web snapshot endpoint.
+    Fallback for when OpenCV cannot open the camera device directly."""
+    cv2, np = _require_runtime()
+    url = _ops_web_base().rstrip("/") + _ops_web_snapshot_path()
+    payload = {
+        "camera_index": int(camera_index),
+        "width": int(width),
+        "height": int(height),
+        "mirror": bool(mirror),
+    }
+    data = json.dumps(payload).encode("utf-8")
+    headers = {"Content-Type": "application/json", "Accept": "application/json"}
+    token = str(os.environ.get("ROBOT_TOKEN", "")).strip()
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+    with urllib.request.urlopen(req, timeout=_ops_web_timeout_s()) as response:
+        body = json.loads(response.read().decode("utf-8"))
+    if not body.get("ok"):
+        raise RuntimeError(f"robot_ops vision snapshot failed: {body}")
+    encoded = body.get("image_jpeg_b64")
+    if not encoded:
+        raise RuntimeError("robot_ops vision snapshot did not include image_jpeg_b64")
+    raw = base64.b64decode(encoded)
+    arr = np.frombuffer(raw, dtype=np.uint8)
+    frame = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+    if frame is None:
+        raise RuntimeError("robot_ops vision snapshot JPEG decode failed")
+    return frame
+
+
+class _OpsWebVideoCapture:
+    """Drop-in cv2.VideoCapture replacement that falls back to the robot_ops web
+    snapshot endpoint when the underlying device cannot be opened directly."""
+
+    def __init__(self, source=0, api_preference=None, *args, **kwargs):
+        cv2, _np = _require_runtime()
+        self._cv2 = cv2
+        self._source = source
+        self._api_preference = api_preference
+        self._width = 640
+        self._height = 480
+        self._direct = None
+        self._use_ops_web = False
+        self._opened = False
+
+        original = getattr(cv2, "_mata_original_VideoCapture", None)
+        if original is None:
+            original = getattr(cv2, "VideoCapture")
+
+        try:
+            if api_preference is None:
+                self._direct = original(source, *args, **kwargs)
+            else:
+                self._direct = original(source, api_preference, *args, **kwargs)
+            self._opened = bool(self._direct.isOpened())
+        except Exception:
+            self._direct = None
+            self._opened = False
+
+        if not self._opened and _ops_web_enabled() and self._is_supported_source(source):
+            self._use_ops_web = True
+            self._opened = True
+
+    @staticmethod
+    def _is_supported_source(source) -> bool:
+        if isinstance(source, int):
+            return source >= 0
+        if isinstance(source, str) and source.startswith("/dev/video"):
+            return source.removeprefix("/dev/video").isdigit()
+        return False
+
+    def _camera_index(self) -> int:
+        if isinstance(self._source, int):
+            return int(self._source)
+        if isinstance(self._source, str) and self._source.startswith("/dev/video"):
+            try:
+                return int(self._source.removeprefix("/dev/video"))
+            except Exception:
+                return 0
+        return 0
+
+    def isOpened(self):
+        return bool(self._opened)
+
+    def read(self):
+        if self._use_ops_web:
+            try:
+                frame = _ops_web_snapshot_frame(
+                    camera_index=self._camera_index(),
+                    width=int(self._width),
+                    height=int(self._height),
+                    mirror=False,
+                )
+                return True, frame
+            except Exception:
+                return False, None
+        if self._direct is None:
+            return False, None
+        return self._direct.read()
+
+    def release(self):
+        if self._direct is not None:
+            try:
+                return self._direct.release()
+            except Exception:
+                return None
+        return None
+
+    def set(self, prop_id, value):
+        if int(prop_id) == int(getattr(self._cv2, "CAP_PROP_FRAME_WIDTH", -1)):
+            self._width = int(value)
+        elif int(prop_id) == int(getattr(self._cv2, "CAP_PROP_FRAME_HEIGHT", -1)):
+            self._height = int(value)
+        if self._direct is not None:
+            try:
+                return self._direct.set(prop_id, value)
+            except Exception:
+                return False
+        return True
+
+    def get(self, prop_id):
+        if int(prop_id) == int(getattr(self._cv2, "CAP_PROP_FRAME_WIDTH", -1)):
+            return float(self._width)
+        if int(prop_id) == int(getattr(self._cv2, "CAP_PROP_FRAME_HEIGHT", -1)):
+            return float(self._height)
+        if self._direct is not None:
+            try:
+                return self._direct.get(prop_id)
+            except Exception:
+                return 0.0
+        return 0.0
+
+    def __getattr__(self, name: str):
+        if self._direct is None:
+            raise AttributeError(name)
+        return getattr(self._direct, name)
+
+
+class _OpsWebFrameCapture:
+    """Minimal capture object that always reads from the robot_ops web endpoint."""
+
+    def __init__(self, camera_index: int = 0, width: int = 640, height: int = 480):
+        self.camera_index = int(camera_index)
+        self.width = int(width)
+        self.height = int(height)
+
+    def isOpened(self):
+        return True
+
+    def read(self):
+        try:
+            frame = _ops_web_snapshot_frame(
+                camera_index=self.camera_index,
+                width=self.width,
+                height=self.height,
+                mirror=False,
+            )
+            return True, frame
+        except Exception:
+            return False, None
+
+    def release(self):
+        return None
+
+    def set(self, prop_id, value):
+        cv2, _np = _require_runtime()
+        if int(prop_id) == int(getattr(cv2, "CAP_PROP_FRAME_WIDTH", -1)):
+            self.width = int(value)
+        elif int(prop_id) == int(getattr(cv2, "CAP_PROP_FRAME_HEIGHT", -1)):
+            self.height = int(value)
+        return True
+
+
 class Vision:
     def __init__(self, camera_index: Optional[int] = None, width: int = 640, height: int = 480, warmup_s: float = 0.25, min_area: int = 350):
         env_value = os.environ.get("CAM_INDEX")
@@ -195,29 +401,57 @@ class Vision:
 
     def _capture_frame(self):
         cv2, _np = _require_runtime()
-        if not self._index_confirmed:
-            capture_index = self._discover_camera_index()
-            self._index_confirmed = True
-        else:
-            capture_index = self.camera_index
-        cap = self._open_capture(capture_index)
-        if not cap.isOpened():
-            cap.release()
-            self._index_confirmed = False
-            capture_index = self._discover_camera_index()
-            self._index_confirmed = True
+        direct_error = None
+        cap = None
+        try:
+            if not self._index_confirmed:
+                capture_index = self._discover_camera_index()
+                self._index_confirmed = True
+            else:
+                capture_index = self.camera_index
             cap = self._open_capture(capture_index)
-        if self.warmup_s > 0:
-            time.sleep(self.warmup_s)
-        # Drain stale V4L2 buffer frames — the first N reads after open
-        # return buffered-up old frames, not the current scene.
-        for _ in range(self.skip_frames):
-            cap.read()
-        ok, frame = cap.read()
-        cap.release()
-        if not ok or frame is None:
-            raise RuntimeError("TonyPi camera opened, but no frame was available from OpenCV capture")
-        return frame.copy()
+            if not cap.isOpened():
+                cap.release()
+                self._index_confirmed = False
+                capture_index = self._discover_camera_index()
+                self._index_confirmed = True
+                cap = self._open_capture(capture_index)
+            if self.warmup_s > 0:
+                time.sleep(self.warmup_s)
+            # Drain stale V4L2 buffer frames — the first N reads after open
+            # return buffered-up old frames, not the current scene.
+            for _ in range(self.skip_frames):
+                cap.read()
+            ok, frame = cap.read()
+            if ok and frame is not None:
+                return frame.copy()
+            direct_error = "TonyPi camera opened, but no frame was available from OpenCV capture"
+        except Exception as e:
+            direct_error = str(e)
+        finally:
+            if cap is not None:
+                try:
+                    cap.release()
+                except Exception:
+                    pass
+
+        # OpenCV capture failed. Fall back to the robot_ops web snapshot endpoint
+        # if enabled — this keeps vision working when the vendor camera process
+        # is holding /dev/video and OpenCV cannot open the device directly.
+        if _ops_web_enabled():
+            try:
+                return _ops_web_snapshot_frame(
+                    camera_index=self.camera_index,
+                    width=max(160, int(self.width)),
+                    height=max(120, int(self.height)),
+                    mirror=False,
+                )
+            except Exception as e:
+                raise RuntimeError(
+                    "TonyPi camera capture failed through OpenCV and robot_ops web. "
+                    f"OpenCV error: {direct_error}. robot_ops error: {e}"
+                ) from e
+        raise RuntimeError(direct_error)
 
     def _write_image(self, frame_bgr, save_path: Optional[str] = None) -> str:
         cv2, _np = _require_runtime()
@@ -847,8 +1081,21 @@ def get_vision() -> Vision:
 
 
 def install_opencv_capture_fallback() -> bool:
-    """TonyPi uses a vendor hardware camera; the OpenCV capture fallback is not applicable."""
-    return False
+    """Monkeypatch cv2.VideoCapture so raw OpenCV capture calls fall back to the
+    robot_ops web snapshot endpoint when the camera device cannot be opened
+    directly. No-op unless MATA_OPS_WEB_CAMERA is enabled (default "auto")."""
+    if not _ops_web_enabled():
+        return False
+    try:
+        import cv2  # type: ignore
+    except Exception:
+        return False
+    if getattr(cv2, "_mata_ops_web_capture_installed", False):
+        return True
+    cv2._mata_original_VideoCapture = cv2.VideoCapture
+    cv2.VideoCapture = _OpsWebVideoCapture
+    cv2._mata_ops_web_capture_installed = True
+    return True
 
 
 def target_position(*args, **kwargs): return get_vision().target_position(*args, **kwargs)
