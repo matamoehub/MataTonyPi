@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 from tonypi_support import run_action
 from sensor_lib import get_distance
+import llm_lib
 
 LOG_DIR = Path("/home/pi/TonyPi/patrol_logs")
 
@@ -111,25 +112,15 @@ def _get_summary(log: list) -> str:
         n = len(log)
         return f"Patrol complete. {n} obstacle{'s' if n != 1 else ''} detected."
     try:
-        import urllib.request, json as _json
+        import json as _json
         prompt = (f"Summarise this robot patrol log in 2 sentences for a non-technical user. "
                   f"Focus on how many obstacles were found and whether the patrol was successful.\n\n"
                   f"{_json.dumps(log)}")
         payload = {
-            "model": "claude-opus-4-5",
             "max_tokens": 150,
             "messages": [{"role": "user", "content": prompt}],
         }
-        req = urllib.request.Request(
-            "https://api.anthropic.com/v1/messages",
-            data=_json.dumps(payload).encode(),
-            headers={"x-api-key": api_key, "anthropic-version": "2023-06-01",
-                     "content-type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = _json.loads(resp.read())
-            return data["content"][0]["text"]
+        return llm_lib.call_claude(payload, api_key=api_key)
     except Exception as e:
         print(f"[patrol_lib] summary error: {e}")
         n = len(log)

@@ -24,6 +24,7 @@ if __name__ not in sys.modules:
 import action_group_lib
 import controller_lib
 import head_lib
+import llm_lib
 import signal_lib
 import tonypi_support as support
 import tts_lib
@@ -453,7 +454,7 @@ class VisionNamespace(_Namespace):
 
     def describe(self) -> str:
         """Describe the scene using Claude API. Returns description string."""
-        import os, base64, urllib.request, json
+        import os, base64
         api_key = os.environ.get("ANTHROPIC_API_KEY", "")
         if not api_key:
             return "I can't see clearly right now — ANTHROPIC_API_KEY not set"
@@ -466,7 +467,6 @@ class VisionNamespace(_Namespace):
                 return "I can't see clearly right now"
             b64 = base64.b64encode(buf.tobytes()).decode()
             payload = {
-                "model": "claude-opus-4-5",
                 "max_tokens": 200,
                 "system": ("You are the vision system of a small humanoid robot called TonyPi. "
                            "Describe what you see in 1-2 short sentences, conversationally."),
@@ -476,16 +476,9 @@ class VisionNamespace(_Namespace):
                     {"type": "text", "text": "What do you see?"}
                 ]}],
             }
-            req = urllib.request.Request(
-                "https://api.anthropic.com/v1/messages",
-                data=json.dumps(payload).encode(),
-                headers={"x-api-key": api_key, "anthropic-version": "2023-06-01",
-                         "content-type": "application/json"},
-                method="POST",
-            )
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                return json.loads(resp.read())["content"][0]["text"]
+            return llm_lib.call_claude(payload, api_key=api_key)
         except Exception as e:
+            print(f"[student_robot_v2] vision.describe error: {e}")
             return "I can't see clearly right now"
 
     def object_classes(self) -> list:
