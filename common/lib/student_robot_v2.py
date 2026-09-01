@@ -309,11 +309,11 @@ class VisionNamespace(_Namespace):
         return DetectionResult(found=True, label=str(name), x=int(obj["cx"]), y=int(obj["cy"]), area=int(obj["area"]), confidence=1.0, note=result.get("path", ""))
 
     def find_object(self, name: str) -> DetectionResult:
-        """Find a specific object by class name using YOLOv8n.
+        """Find a specific object by class name using YOLO26n.
         Shows annotated frame in Jupyter with a box around the detected object."""
         if yolo_lib is None or not yolo_lib.is_available():
             return DetectionResult(found=False, label=str(name),
-                                   note="YOLOv8n not available — pip install ultralytics")
+                                   note="YOLO26n not available — pip install ultralytics")
         import cv2
         vis = vision_lib.get_vision()
         frame = vis._capture_frame()
@@ -417,7 +417,7 @@ class VisionNamespace(_Namespace):
         }
 
     def detect_objects(self, confidence: float = 0.45) -> list:
-        """Detect all objects in frame using YOLOv8n.
+        """Detect all objects in frame using YOLO26n.
         Shows annotated frame in Jupyter with boxes around every detected object."""
         if yolo_lib is None or not yolo_lib.is_available():
             self._log("vision.detect_objects")
@@ -482,7 +482,7 @@ class VisionNamespace(_Namespace):
             return "I can't see clearly right now"
 
     def object_classes(self) -> list:
-        """List all 80 COCO object classes YOLOv8n can detect."""
+        """List all 80 COCO object classes YOLO26n can detect."""
         return yolo_lib.class_names() if yolo_lib else []
 
     def yolo_available(self) -> bool:
@@ -541,7 +541,7 @@ class PickupNamespace(_Namespace):
         """Look for an object before picking up.
         Shows a raw snapshot first ("here's what I can see"), then runs
         detection and shows an annotated frame with boxes around any matches.
-        Uses colour detection for red/green/blue/yellow, YOLOv8n for everything else.
+        Uses colour detection for red/green/blue/yellow, YOLO26n for everything else.
         Returns a DetectionResult so you can check result.found before acting."""
         target = str(name).strip().lower()
         vis = vision_lib.get_vision()
@@ -561,7 +561,7 @@ class PickupNamespace(_Namespace):
                                    x=int(obj["cx"]), y=int(obj["cy"]),
                                    area=int(obj["area"]), confidence=1.0,
                                    note=result.get("path", ""))
-        # General object — use YOLOv8n
+        # General object — use YOLO26n
         self._log("pickup.find", name=name, method="yolo")
         return self._owner.vision.find_object(name)
 
@@ -1292,7 +1292,7 @@ class RobotV2:
         _line("games_lib",     games_lib,     "games_lib")
 
         yolo_ok = yolo_lib is not None and yolo_lib.is_available()
-        print(f"  {'✓' if yolo_ok else '✗'}  {'YOLO model':<18} {'ready (yolov8n)' if yolo_ok else 'not installed  ← pip install ultralytics'}")
+        print(f"  {'✓' if yolo_ok else '✗'}  {'YOLO model':<18} {'ready (yolo26n)' if yolo_ok else 'not installed  ← pip install ultralytics'}")
 
         vendor_ok = support.vendor_available()
         ag_count = len(support.list_action_groups())
@@ -1419,14 +1419,14 @@ class RobotV2:
             from ultralytics import YOLO as _YOLO  # noqa: F401
             from pathlib import Path as _Path
             model_paths = [
-                _Path("/opt/robot/models/yolov8n.pt"),
-                _Path.home() / ".config" / "Ultralytics" / "yolov8n.pt",
+                _Path("/opt/robot/models/yolo26n.pt"),
+                _Path.home() / ".config" / "Ultralytics" / "yolo26n.pt",
             ]
             found = next((p for p in model_paths if p.exists()), None)
             if found:
-                _pass("YOLO", f"yolov8n.pt at {found}")
+                _pass("YOLO", f"yolo26n.pt at {found}")
             else:
-                _fail("YOLO", "ultralytics installed but yolov8n.pt not found — run: python3 -c \"from ultralytics import YOLO; YOLO('yolov8n.pt')\"")
+                _fail("YOLO", "ultralytics installed but yolo26n.pt not found — run: python3 -c \"from ultralytics import YOLO; YOLO('yolo26n.pt')\"")
         except ImportError:
             _fail("YOLO", "not installed — run: pip install ultralytics")
         except Exception as e:

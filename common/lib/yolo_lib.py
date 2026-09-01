@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""YOLOv8n object detection library for MataTonyPi."""
+"""YOLO26n object detection library for MataTonyPi."""
 from __future__ import annotations
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 import os
 import threading
 from pathlib import Path
@@ -12,11 +12,11 @@ _model_lock = threading.Lock()
 _available: bool | None = None   # None = not yet checked
 
 _YOLO_MODEL_SEARCH_PATHS = [
-    Path("/opt/robot/models/yolov8n.pt"),
-    Path(__file__).resolve().parent.parent / "models" / "yolov8n.pt",
-    Path.home() / ".config" / "Ultralytics" / "yolov8n.pt",
+    Path("/opt/robot/models/yolo26n.pt"),
+    Path(__file__).resolve().parent.parent / "models" / "yolo26n.pt",
+    Path.home() / ".config" / "Ultralytics" / "yolo26n.pt",
 ]
-_YOLO_MODEL_NAME = os.environ.get("YOLO_MODEL", "yolov8n.pt")
+_YOLO_MODEL_NAME = os.environ.get("YOLO_MODEL", "yolo26n.pt")
 
 
 def is_available() -> bool:
@@ -41,14 +41,14 @@ def _get_model():
                     _model = YOLO(str(p))
                     print(f"[yolo_lib] model loaded from {p}")
                     return _model
-            print("[yolo_lib] pre-installed model not found — downloading yolov8n.pt…")
+            print(f"[yolo_lib] pre-installed model not found — downloading {_YOLO_MODEL_NAME}…")
             _model = YOLO(_YOLO_MODEL_NAME)
     return _model
 
 
 def detect(frame, confidence: float = 0.45) -> list[dict[str, Any]]:
     """
-    Run YOLOv8n on a BGR frame.
+    Run YOLO26n on a BGR frame.
     Returns list of dicts: {label, confidence, x, y, w, h, cx, cy, area}.
     Returns [] if ultralytics not installed or inference fails.
     """
@@ -89,7 +89,7 @@ def find_class(frame, class_name: str, confidence: float = 0.45) -> dict[str, An
 
 
 def class_names() -> list[str]:
-    """Return all 80 COCO class names YOLOv8n can detect."""
+    """Return all 80 COCO class names YOLO26n can detect."""
     if not is_available():
         return []
     try:
