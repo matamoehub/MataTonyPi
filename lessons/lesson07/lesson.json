@@ -3,6 +3,11 @@
   "title": "Lesson 7 - Object Tracking",
   "description": "Continuously track a color target and turn body/head toward it.",
   "summary": "Continuously track a color target and turn body/head toward it.",
+  "tags": [
+    "Tracking",
+    "Colour detection"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",

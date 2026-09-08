@@ -3,6 +3,10 @@
   "title": "Lesson 4 - Single Color Detection",
   "description": "Capture camera frames and detect a single target color with a robot reaction.",
   "summary": "Capture camera frames and detect a single target color with a robot reaction.",
+  "tags": [
+    "Colour detection"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",

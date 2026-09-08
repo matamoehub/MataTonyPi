@@ -3,6 +3,11 @@
   "title": "Lesson 13 - Rock Paper Scissors",
   "description": "Use TonyPi hand recognition, speech, and poses to play rock paper scissors with a student.",
   "summary": "Use TonyPi hand recognition, speech, and poses to play rock paper scissors with a student.",
+  "tags": [
+    "AI: Pose & hands",
+    "Sound & voice"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",

@@ -2,6 +2,13 @@
   "id": "lesson01",
   "title": "Lesson 1 - TonyPi Show Starter",
   "description": "Meet TonyPi through a guided performance lesson covering speech, gestures, head motion, poses, movement, vision, and pickup actions.",
+  "tags": [
+    "Robot control",
+    "Sound & voice",
+    "Expression",
+    "Arm & gripper"
+  ],
+  "has_demo": true,
   "levels": [
     {
       "id": "level_1",

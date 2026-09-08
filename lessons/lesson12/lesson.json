@@ -3,6 +3,12 @@
   "title": "Lesson 12 - Pickup and Intelligent Transport",
   "description": "Combine detection, approach, pickup, carry, and place-down in one transport flow.",
   "summary": "Combine detection, approach, pickup, carry, and place-down in one transport flow.",
+  "tags": [
+    "Arm & gripper",
+    "Colour detection",
+    "Tracking"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",

@@ -3,6 +3,10 @@
   "title": "Lesson 10 - Tag Detection and Tag Actions",
   "description": "Detect AprilTags and trigger different actions per tag id.",
   "summary": "Detect AprilTags and trigger different actions per tag id.",
+  "tags": [
+    "Navigation"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",

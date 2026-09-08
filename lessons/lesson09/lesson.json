@@ -3,6 +3,10 @@
   "title": "Lesson 9 - Line Follow",
   "description": "Tune camera target detection for patrol lines and maintain alignment.",
   "summary": "Tune camera target detection for patrol lines and maintain alignment.",
+  "tags": [
+    "Line following"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",
