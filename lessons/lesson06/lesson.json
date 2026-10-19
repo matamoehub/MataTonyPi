@@ -3,6 +3,11 @@
   "title": "Lesson 6 - Target Position Recognition",
   "description": "Use color detection coordinates to decide if a target is left, center, or right.",
   "summary": "Use color detection coordinates to decide if a target is left, center, or right.",
+  "tags": [
+    "Colour detection",
+    "Tracking"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",

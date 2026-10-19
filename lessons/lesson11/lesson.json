@@ -3,6 +3,11 @@
   "title": "Lesson 11 - Face Detect and Greeting",
   "description": "Detect faces and respond with greetings, gestures, and tracking behavior.",
   "summary": "Detect faces and respond with greetings, gestures, and tracking behavior.",
+  "tags": [
+    "AI: Faces",
+    "Sound & voice"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",

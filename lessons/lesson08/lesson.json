@@ -3,6 +3,12 @@
   "title": "Lesson 8 - Auto Shooting",
   "description": "Combine vision and movement to approach a ball target and trigger a kick-style action.",
   "summary": "Combine vision and movement to approach a ball target and trigger a kick-style action.",
+  "tags": [
+    "Colour detection",
+    "Robot control",
+    "Tracking"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",

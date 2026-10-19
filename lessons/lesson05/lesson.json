@@ -3,6 +3,10 @@
   "title": "Lesson 5 - Color Recognition and Reactions",
   "description": "Recognize multiple colors and map each color to different behaviors.",
   "summary": "Recognize multiple colors and map each color to different behaviors.",
+  "tags": [
+    "Colour detection"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",

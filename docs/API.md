@@ -124,8 +124,8 @@ if result.found:
 ### `myRobot.vision`
 
 - `find_color(name)`
-- `find_object(name)` — find a specific object by class name via YOLOv8n
-- `detect_objects(confidence=0.45)` — detect every object in frame via YOLOv8n
+- `find_object(name)` — find a specific object by class name via YOLO26n
+- `detect_objects(confidence=0.45)` — detect every object in frame via YOLO26n
 - `find_face()`
 - `find_faces()` — detect all faces (not just one), returns a list of results
 - `recognize_hands(show=True)`
@@ -150,8 +150,8 @@ if result.found:
   angular + lateral measurements
 - `estimate_distance(pixel_width, object_real_width_cm)` — estimate forward
   distance to an object in cm from its pixel width and known real size
-- `object_classes()` — list all 80 COCO object classes YOLOv8n can detect
-- `yolo_available()` — `True` if YOLOv8n is installed
+- `object_classes()` — list all 80 COCO object classes YOLO26n can detect
+- `yolo_available()` — `True` if YOLO26n is installed
 - `describe()` — AI scene description via the Claude API; returns a
   fallback string ("I can't see clearly right now") if the API key is
   missing or the call fails

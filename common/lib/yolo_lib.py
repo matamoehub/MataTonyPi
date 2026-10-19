@@ -116,7 +116,7 @@ def _get_model():
 
 def detect(frame, confidence: float = 0.45) -> list[dict[str, Any]]:
     """
-    Run YOLOv8n on a BGR frame.
+    Run YOLO26n on a BGR frame.
     Returns list of dicts: {label, confidence, x, y, w, h, cx, cy, area}.
     Returns [] if ultralytics not installed or inference fails.
     """

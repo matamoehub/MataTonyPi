@@ -3,6 +3,11 @@
   "title": "Lesson 3 - Action Groups and Performances",
   "description": "Use prebuilt action groups and speech to choreograph short performances.",
   "summary": "Use prebuilt action groups and speech to choreograph short performances.",
+  "tags": [
+    "Robot control",
+    "Sound & voice"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",

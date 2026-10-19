@@ -3,6 +3,10 @@
   "title": "Lesson 14 - Multi-Control Robot Team",
   "description": "Use robot-console to configure one TonyPi as the server and the others as clients, then test synchronized action-group control.",
   "summary": "Use robot-console to configure one TonyPi as the server and the others as clients, then test synchronized action-group control.",
+  "tags": [
+    "Robot control"
+  ],
+  "has_demo": false,
   "levels": [
     {
       "id": "level_1",

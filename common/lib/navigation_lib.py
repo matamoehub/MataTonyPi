@@ -78,18 +78,18 @@ def stop_navigation():
     _nav_stop.set()
 
 
-# ── Person following (YOLOv8n) ─────────────────────────────────────────────────
+# ── Person following (YOLO26n) ─────────────────────────────────────────────────
 
 _follow_stop = threading.Event()
 
 
 def follow_person(tof_min_mm: int = 350, tof_max_mm: int = 650) -> dict[str, Any]:
-    """Non-blocking: follow a person using YOLOv8n + ToF distance gating."""
+    """Non-blocking: follow a person using YOLO26n + ToF distance gating."""
     from yolo_lib import find_class, is_available as yolo_ok
     from sensor_lib import get_distance
 
     if not yolo_ok():
-        return {"ok": False, "note": "YOLOv8n not available — pip install ultralytics"}
+        return {"ok": False, "note": "YOLO26n not available — pip install ultralytics"}
 
     def _follow():
         import vision_lib
